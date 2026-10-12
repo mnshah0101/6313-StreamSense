@@ -1,11 +1,11 @@
 # Development environment
 
-## What this setup proves
+## What works at this stage
 
-The repository can install a locked Python API environment and a locked React/TypeScript frontend,
-run the local preparation page/API, and execute checks without client data, credentials or a GPU.
-No application tables, migrations, auth provider, uploads, worker, model inference or production
-hosting have been implemented. See [verification evidence](readiness/verification.md).
+This setup installs the recorded software versions, runs a basic API and web page locally,
+and checks the code without needing client data, passwords or a GPU.
+The database tables, setup scripts, login, uploads, worker, model analysis and hosted deployment
+have not been built. See [verification evidence](readiness/verification.md).
 
 ## Prerequisites and installation
 
@@ -13,7 +13,7 @@ hosting have been implemented. See [verification evidence](readiness/verificatio
 - Node 24.19.0 (`.node-version`) and npm. Activate that version using your normal version manager.
 - uv 0.13.0; the CI workflow pins it. See [official uv installation](https://docs.astral.sh/uv/getting-started/installation/).
 - Make for the shortcuts below; equivalent commands are also provided.
-- Docker Compose is optional until database work. No remote service signup is needed for the scaffold.
+- Docker Compose is optional until database work. No remote service signup is needed for this starter setup.
 
 Official references: [Node downloads](https://nodejs.org/en/download),
 [Vite setup](https://vite.dev/guide/), [FastAPI first steps](https://fastapi.tiangolo.com/tutorial/first-steps/),
@@ -26,8 +26,9 @@ make setup
 ```
 
 `make setup` is exactly `uv sync --locked` and `npm --prefix frontend ci`.
-`uv.lock` and `frontend/package-lock.json` control resolved versions; commit intentional lock
-changes together with dependency edits. The main API does not import the research environment.
+`uv.lock` and `frontend/package-lock.json` record exact software versions so developers get
+the same setup. Update them when intentionally changing dependencies. The API does not load
+the separate research software.
 
 ## Run
 
@@ -64,7 +65,7 @@ CI runs the same setup/checks on pull requests and main pushes with no client se
 execution is only verified when a successful GitHub Actions run is recorded; a workflow file alone
 is not proof of a passing remote run. Fork PRs may require a maintainer to approve the first run.
 
-## Database tooling prepared for TASK-001
+## Database tools ready for the first task
 
 SQLAlchemy, Alembic and Psycopg are installed in the Python lockfile. The local service uses
 PostgreSQL 17, localhost port 5432, a persistent development volume and disposable local-only
@@ -77,7 +78,7 @@ make db-up
 make db-stop
 ```
 
-No code currently reads `.env`, and no migrations exist. TASK-001 will define environment loading,
+No code currently reads `.env`, and no database setup scripts (migrations) exist. TASK-001 will define environment loading,
 initialize Alembic and implement/test its first migration after approval. Until then, do not
 claim `alembic upgrade head` creates a schema. `db-stop` preserves the local volume. If a developer
 later wants to remove that volume, they must intentionally accept losing its local contents.

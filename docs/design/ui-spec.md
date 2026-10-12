@@ -1,4 +1,4 @@
-# UI specification
+# What the screens should show and do
 
 Reference: [StreamSense mid-fidelity prototype](https://www.figma.com/proto/m22oT1kKlNysFpEaeVg8NJ/StreamSense-Mid-Fi-Prototype---Parallax-6313?node-id=12-3282).
 Browser inspection: October 11, 2026. This describes planned screens; the runnable frontend
@@ -11,8 +11,8 @@ clear text headings and compact defect/severity labels. Navigation: Alerts, Test
 Clip, Match Analysis, and Model Performance. Preserve that structure when implementing.
 Exact typography, spacing tokens and responsive breakpoints have not been extracted/approved;
 choose them in the UI task and validate with the prototype rather than claim pixel-perfect fidelity.
-Use semantic controls, visible keyboard focus, text labels for status, and accessible error/progress
-announcements. Color alone must not convey good/bad or review state.
+Use standard accessible controls, a visible keyboard focus indicator and text labels for status.
+Screen readers should announce errors and progress. Color alone must not convey good/bad or review state.
 
 ## Screens and states
 
@@ -28,7 +28,7 @@ announcements. Color alone must not convey good/bad or review state.
 The flow list also exposes a dismiss-failure demo; that branch was not fully inspected.
 Its existence does not establish implemented error handling.
 
-## Prototype-to-implementation corrections
+## Changes needed when building from the prototype
 
 - Confirm records a human review only. Crew routing/Slack is outside initial application scope.
 - Prototype severity 1–5 values are examples. Show **Unavailable** until validated per-defect
@@ -44,7 +44,7 @@ Its existence does not establish implemented error handling.
 - The October 9 requirement extends the completed single-match prototype to multiple videos
   and growing timelines. Do not claim this behavior was demonstrated by the inspected prototype.
 
-## Later demo extension
+## Adding the multiple-video demo
 
 Allow users to follow more than one uploaded video job and see incremental, correctly linked
 frame results. Keep each job's source, model, progress and failure state visible. Do not promise

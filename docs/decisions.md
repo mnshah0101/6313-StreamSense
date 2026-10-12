@@ -1,9 +1,9 @@
-# Decision register
+# Decisions made and questions still open
 
-The source-based draft separates recorded direction from choices that remain open. Suggested
-owners below are review roles, not assigned commitments or evidence of approval.
+This list separates existing design choices from questions that still need answers. The people
+listed are suggested reviewers; they have not been assigned the work or recorded approval here.
 
-## Recorded direction
+## Current design choices
 
 | Topic | Current basis |
 | --- | --- |
@@ -16,9 +16,9 @@ owners below are review roles, not assigned commitments or evidence of approval.
 | Agentic work | S7 records AI tooling allowed; S1 requires team review and plan-only first task |
 | Preparation tooling | Vite scaffold, uv/npm locks, pytest/Ruff/Oxlint/TypeScript checks; proposed routine setup choices for team review |
 
-## Open decisions and implementation gates
+## Questions to answer before the affected work starts
 
-| ID | Decision needed | Blocks | Who should resolve |
+| ID | Decision needed | Work that must wait | Who should resolve |
 | --- | --- | --- | --- |
 | D-01 | Confirm the drafted scope/specifications and first task; record instructor go/no-go | Feature implementation | All team members / instructor |
 | D-02 | OIDC provider, session store/lifetime, invitation flow, permission vocabulary and asset-grant schema | Authentication and private data routes | Team; client for hosted access |
@@ -35,7 +35,7 @@ TASK-001 deliberately has no dependency on provider selection, client media, per
 or worker scheduling. It is limited to four core tables and local migration tests. Its proposed
 restrictive deletion policy and explicit values are reviewable in the task/plan, not hidden defaults.
 
-## Reconciled differences
+## Differences between earlier documents
 
 - S7's PACE and “EC2 unavailable” reflect earlier experimentation; S2's possible EC2 host is
   a later hosting proposal. Neither proves future production resources are provisioned.
@@ -50,5 +50,5 @@ restrictive deletion policy and explicit values are reviewable in the task/plan,
 
 ## Recording a resolution
 
-For each decision, add date, exact decision, source/approver, affected specifications and any
-verification required. Do not mark a decision approved on behalf of a teammate or client.
+Record the date, what was decided, who approved it, which documents change and what needs
+testing. Do not record approval on behalf of a teammate or client.

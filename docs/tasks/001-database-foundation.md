@@ -1,55 +1,62 @@
-# TASK-001 — Establish the core PostgreSQL schema and migrations
+# First task: set up the core database
 
-**Status: proposed; plan only. Implementation has not started.**
-Owner: assign during team review. Approval: pending team review and instructor go/no-go.
+**TASK-001 — proposed; planning only. Implementation has not started.**
+The team will assign an owner during review. Team review and instructor approval are pending.
 
-## Why this is first
+## Why start here?
 
-The main app currently has no database schema. Uploads, jobs, authorization and inference provenance
-all need a consistent storage foundation. S3's Global Setup and later feature dependencies call for
-data/database setup; S2 Figures 4–5 define the records. Existing research files are not an application
-database. A schema task is meaningful and can be tested locally without client data or a GPU.
+The app needs a place to record who uploaded a file, which model to use and what work is waiting.
+Those records support later upload, login and analysis features. The detailed design already
+shows their fields and relationships. The research repository does not provide this app database.
 
-## Scope
+## What to build after approval
 
-Create a reversible Alembic migration and SQLAlchemy metadata for exactly:
-`Account`, `ModelVersion`, `MediaAsset`, and `AnalysisJob`, using the core schema in
-[`data-model.md`](../data-model.md). Add database configuration that reads `DATABASE_URL`,
-an example/local setup guide, and real-PostgreSQL integration tests.
+Create these four PostgreSQL tables:
 
-Use UUID keys, timezone-aware timestamps, JSONB permissions, required FKs, explicit role/job-status
-checks, unique account subject and asset object key, a positive sampling interval and the documented
-indexes. Proposed first-task deletion policy is restrictive: dependent records block deletion until
-a later explicit deletion service coordinates cleanup. Do not seed real accounts/model manifests.
-
-No HTTP route may expose these records yet. Authentication, upload verification, workers, video
-decoding, alert/review tables, evaluation tables, model inference and production deployment are excluded.
-Do not modify the research repository or its locked test split.
-
-## Acceptance criteria
-
-| ID | Observable condition |
+| Table | What it records |
 | --- | --- |
-| AC-01 | A fresh disposable PostgreSQL 17 database accepts `alembic upgrade head`; exactly the four application tables plus Alembic's version table exist. |
-| AC-02 | A synthetic account/model/asset/job chain inserts successfully and retains the expected UUID relationships, JSON object permissions and timezone-aware timestamps. |
-| AC-03 | Duplicate subject/object key, missing parent FK, invalid role/job status, non-object permissions and nonpositive sample interval are rejected by database constraints. |
-| AC-04 | Required field nulls are rejected; nullable metadata/lease/failure fields accept null without fabricated values. |
-| AC-05 | `upgrade head` twice is safe; `downgrade base` then `upgrade head` works on a disposable database. Destructive migration testing never targets client data. |
-| AC-06 | Deleting a referenced parent fails under the proposed restrictive policy; documented indexes are present. |
-| AC-07 | Real-PostgreSQL integration tests run locally and in CI alongside the existing checks; no credentials/client records are committed or logged. |
-| AC-08 | README/development instructions explain database start, configuration, migration, verification and failure diagnosis; no application feature is claimed complete. |
+| Account | A user and their account information |
+| ModelVersion | The exact saved model and settings used for analysis |
+| MediaAsset | An uploaded file, its owner and its private storage reference |
+| AnalysisJob | A request to analyze one file using one model |
 
-## Ready-to-start prerequisites
+Use the field definitions in [the data model](../data-model.md). Write an Alembic migration:
+a saved script that creates the tables and can undo that setup on a test database. Use SQLAlchemy
+to define the tables in Python, and read the database connection from `DATABASE_URL`.
 
-- Team reviews `001-agent-plan.md` and records corrections/acceptance in the review worksheet.
-- Instructor implementation permission is recorded.
-- PostgreSQL 17 is available locally or as a disposable CI service.
-- Team accepts the first-task details: four-table boundary, JSON-object-only permission container,
-  explicit IDs/timestamps and restrictive deletes. Permission semantics remain a later task.
+Preserve the specified record IDs, timestamps, required links, allowed roles/job states and unique
+values. Permissions must be a JSON object, and the sampling interval must be positive. Add the
+listed indexes to support record lookups. Use explicit IDs and timestamps rather than hidden
+defaults. The proposed starting rule blocks deletion of records that other records still need.
+The team must review that rule; the full deletion policy is later work.
 
-## Stop condition
+Do not add real accounts, saved model records or client files. This task does not build login,
+API routes, uploads, workers, video processing, alerts, reviews or deployment. It does not change
+the research code or its final test data.
 
-For this Development Readiness assignment, stop after proposing/reviewing the plan. Do not create
-ORM models, Alembic environment files or migrations now. The dependency tooling and optional local
-PostgreSQL service are preparation only. Record the plan's review honestly; AI cannot approve it
-on behalf of Moksh, Thomas, Chang or the instructor.
+## How we will know the task is complete
+
+| ID | Required result |
+| --- | --- |
+| AC-01 | On a fresh PostgreSQL 17 test database, `alembic upgrade head` creates exactly the four app tables plus Alembic's own version table. |
+| AC-02 | Made-up account, model, asset and job records can be saved and read back with correct IDs, links, JSON permissions and timezone-aware timestamps. |
+| AC-03 | The database rejects duplicate account subjects/file keys, missing linked records, invalid roles/job states, non-object permissions and sampling intervals of zero or less. |
+| AC-04 | Required fields cannot be empty. Fields marked optional accept null without made-up replacement values. |
+| AC-05 | Running setup twice is safe. Undoing setup with `downgrade base` and rerunning it works on a disposable database only. |
+| AC-06 | Deleting a record that other records depend on is blocked. The planned indexes exist. |
+| AC-07 | Tests run against real PostgreSQL locally and on GitHub, alongside existing checks. No passwords or client data are committed or logged. |
+| AC-08 | The development guide explains how to start the database, supply settings, run migrations, check results and diagnose failures. It does not claim other app features are finished. |
+
+## Before starting
+
+- Review [the proposed plan](001-agent-plan.md) and record team feedback in the review worksheet.
+- Record the instructor's approval to begin implementation.
+- Have PostgreSQL 17 available locally or in a disposable CI service.
+- Agree on the four-table scope, permission storage, explicit IDs/timestamps and deletion rule.
+  The meaning of individual permissions will be decided in the later access-control task.
+
+## Assignment stopping point
+
+Stop after preparing and reviewing the plan. Do not create table definitions or migration files
+for this assignment. Installing database tools and providing a local database configuration are
+preparation only. AI cannot approve the plan on behalf of the team or instructor.

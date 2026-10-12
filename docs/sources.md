@@ -1,6 +1,6 @@
-# Source basis and requirement traceability
+# Sources and where each requirement came from
 
-## Source register
+## Materials reviewed
 
 Source documents were supplied by Chang. Their private originals, signatures, meeting recordings,
 contact details, and client assets are not copied into this public repository. Team members should
@@ -26,7 +26,7 @@ was inspected through its shared browser view. The connector did not have edit a
 Main views inspected: alert queue, alert detail, heat-map toggle, upload, completed-match
 timeline, and model performance. This was not an exhaustive test of every prototype branch.
 
-## Precedence and interpretation
+## How to use these sources together
 
 Use S2 for the planned application structure and S10 for the later demo clarification.
 S4 preserves client requirements; S3 decomposes work. S5 is an interaction reference, not
@@ -35,7 +35,7 @@ records the distinction rather than silently declaring a new requirement approve
 Meeting summaries can compress or misattribute technical statements. Treat numerical claims
 and proposed experiments as dated reports until supported by a run record or team confirmation.
 
-## Requirements mapped to specifications
+## Where each requirement is explained
 
 | Requirement | Source | Specification / evidence needed |
 | --- | --- | --- |

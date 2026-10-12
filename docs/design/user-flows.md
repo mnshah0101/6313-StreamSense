@@ -1,4 +1,4 @@
-# User flows and acceptance boundaries
+# Steps users will follow
 
 Derived from the task scenarios, Detailed Design V1 and the October 9 sync. All flows below
 are planned. Login and permissions precede access to real data; the local scaffold does not
@@ -42,8 +42,7 @@ Historical results keep their original policy. Unknown per-defect severity disab
 cutoff. No threshold selection uses final-test metrics. Identity and threshold publication details
 must be settled before this task.
 
-## Readiness verification versus feature acceptance
+## What the current checks do and do not prove
 
-`make verify` proves only that the preparation scaffold installs, lints, builds and passes its
-small API boundary tests. These user flows need feature-level tests and team/client validation
+`make verify`, after setup, checks code style, builds the frontend and runs the two basic API tests. These user flows need feature-level tests and team/client validation
 later; do not mark them complete because the scaffold checks pass.

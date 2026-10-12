@@ -1,60 +1,68 @@
-# Security and privacy specification
+# Security and privacy
 
-Source: Detailed Design V1 §§2.4, 3.6–3.8. These are planned controls. The preparation scaffold
-has no real accounts, uploads, client data or hosted services and is bound to localhost.
-It is not a production authentication or security implementation.
+The detailed design (§§2.4 and 3.6–3.8) sets the requirements below. These protections still need
+to be built and tested. The current local setup has no real users, uploads, client footage or
+hosted services. It is not a production security system.
 
-## Identity and authorization
+## Login and access
 
-Use a managed OIDC provider, authorization code flow with PKCE, and validate issuer, audience,
-state and nonce. Webmasters invite/provision accounts; no public self-registration by default.
-Only active, explicitly authorized accounts may read application data or media. The team and
-Vijay are the intended webmasters, but no accounts or credentials are seeded by preparation.
-Store the provider subject and minimum account information, not passwords/provider tokens.
+Use a managed login service through OIDC, a standard sign-in method. Protect the login flow with
+PKCE and check its issuer, audience, state and nonce values. The [glossary](glossary.md) explains
+the main abbreviations; the developer implementing login must also follow the provider's guidance.
 
-Use server-side sessions with Secure, HttpOnly, SameSite cookies, expiry and server-side logout.
-Require CSRF protection for state changes. Role/permission changes must affect future requests
-and existing sessions immediately. Provider, session lifetime/store and invitation policy are D-02.
+Webmasters invite users; there is no public self-registration by default. The team and Vijay are
+the intended webmasters, but setup does not create these accounts. Save only the account details
+needed by the app, not passwords or provider tokens.
 
-Authenticate every deployed data route and authorize the full chain from asset to job, frame,
-prediction, alert and media. An ID is not permission. Browser-supplied owner/reviewer IDs are not
-trusted. Regular users receive explicit analysis/review and asset access; only webmasters can
-manage accounts, permissions and threshold publication. Detailed permission/grant schema is D-02.
-The scaffold health endpoint is local liveness only and returns no private state; production
-health-route exposure must be decided with deployment, rather than bypassing the data-route rule.
+A successful login is not permission to see every file. Each request must check that the account
+is active and may access the requested asset, job, frame, alert or media. Guessing an ID must not
+grant access. The server determines the user and reviewer from the session, not an ID supplied by
+the browser. Only webmasters manage accounts, permissions and published thresholds.
 
-## Media and processing
+Login sessions must expire and end on logout. Changed permissions must apply immediately to
+existing sessions and future requests. Use server-side sessions and cookies marked `Secure`,
+`HttpOnly` and `SameSite`, plus CSRF protection for requests that change data. The team still needs
+to choose the provider, session settings and detailed access rules (D-02).
 
-- Upload directly into private storage with short-lived, bounded authorization.
-- Enforce an approved format/codec/size/duration list, verify actual decoded content, and
-  isolate decoding from API requests. Never trust an extension or MIME header alone.
-- Do not fetch user-supplied arbitrary URLs. Do not expose storage credentials or internal keys.
-- Check authorization each time private media is served, with `Cache-Control: private, no-store`.
-- Use least-privilege service credentials and encrypted connections/storage. Validate that the
-  selected providers can meet the desired network isolation before deployment (D-03).
-- Keep checkpoints private alongside the worker. API logs must not contain footage, raw labels,
-  cookies, signed links, credentials or identifying client metadata.
-- Never feed uploaded footage, dismissed alerts or human reviews into training automatically.
+The local `/health` route only says that the server is running and reveals no private data.
+Decide separately whether to expose a health route in deployment; it does not create an exception
+for private application data.
 
-## Repository and test data
+## Uploading, processing and viewing footage
 
-Use synthetic fixtures and generic examples. Keep original source PDFs, meeting recordings,
-client media, metadata rows, predictions, model checkpoints and private reports outside Git.
-`.gitignore` provides a convenience boundary only; review staged paths and content before push.
-CI must operate without client credentials or datasets. A public source repository does not make
-its associated client data public. AI tooling permission does not override these data boundaries.
+- Upload directly to private storage using short-lived, limited permission.
+- Agree on file formats, codecs, sizes and durations. Check the actual file contents, not just
+  its extension or the browser's description. Decode files separately from API requests.
+- Do not download files from arbitrary URLs supplied by users.
+- Check access every time media is viewed. Use `Cache-Control: private, no-store` so private
+  media responses are not kept in browser/shared caches.
+- Give services only the access they need. Encrypt connections and stored data, and confirm
+  that the selected hosting services support the required network restrictions (D-03).
+- Keep saved models private. Never log footage, raw labels, passwords, cookies, signed viewing
+  links or identifying client metadata.
+- Uploading a video or reviewing an alert does not give permission to use it for model training.
 
-## Retention and deletion
+## What can go in GitHub?
 
-Client-approved periods must cover originals, sampled frames, overlays, predictions, backups
-and experiment artifacts. The periods are unresolved (D-06); no production media ingestion is
-approved by this setup. Deletion immediately blocks viewing and schedules coordinated removal
-of associated files/rows, preserving only appropriately anonymized audit evidence. The final
-schema must resolve actor-FK/anonymization behavior before implementing deletion.
+Use made-up data for tests and examples. Keep client media, metadata rows, labels, predictions,
+saved models, source PDFs and meeting recordings outside the repository. Review files and their
+contents before publishing; `.gitignore` alone cannot prevent accidental disclosure.
 
-## Required verification before relevant features ship
+Automated GitHub checks must work without client data or credentials. Permission to use AI tools
+does not remove these restrictions. A public code repository does not make client footage public.
 
-Test unauthorized cross-asset access, revoked accounts/sessions, CSRF rejection, upload format
-spoofing and resource limits, stale/concurrent reviews, duplicate requests, failed inference,
-missing overlays, private cache headers, and deletion/access revocation. Test each when that
-feature is implemented; do not claim the scaffold already passes these product controls.
+## Keeping and deleting data
+
+Before real footage is uploaded, agree with Vijay on how long to keep originals, frames, heat maps,
+predictions, backups and experiment files (D-06). No retention period has been approved by this setup.
+
+Deleting an asset must immediately prevent further viewing and arrange removal of its related
+files and records. Keep only the allowed anonymous audit information. The team must decide how
+that works with database links to user accounts before implementing deletion.
+
+## Checks required as features are built
+
+Test that users cannot access someone else's files, revoked accounts lose access, unwanted
+cross-site requests are rejected, and invalid/oversized files fail clearly. Also test conflicting
+reviews, repeated requests, failed analysis, missing heat maps, private cache settings and deletion.
+The current two starter tests do not prove these protections work.

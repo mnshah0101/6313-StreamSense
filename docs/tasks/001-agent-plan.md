@@ -1,84 +1,94 @@
-# Agent-proposed implementation plan — TASK-001
+# Proposed plan for the first task
 
 **Prepared October 11, 2026. Not implemented. Team review pending.**
 
-## Investigation performed
+The first task is to create four connected database tables. This plan explains how an agent
+would do that after approval. A database migration is a saved script that creates or changes
+tables; it makes setup repeatable for every developer.
 
-- Inspected the main repository at `d8a81704d775c029372526d3458799d4ce5e790d`: only a README.
-- Inspected the separate research repository at `22a39b63526a696595ee5eb42b9bc790514464b9`:
-  Python model/data/evaluation modules, locked dependencies, tests and Slurm tooling; no app database.
-- Reviewed S2's architecture, core table fields and ERDs; S3's setup dependencies; S4's client
-  requirements; S10's async job direction; and the prototype's relevant screens.
-- Inspected the preparation scaffold: FastAPI health only, a static React preparation page,
-  Python/JS lockfiles, checks and optional PostgreSQL Compose service. SQLAlchemy/Alembic/Psycopg
-  dependencies are installed, but there are no ORM models or migrations.
-- Identified schema gaps affecting later work (sessions/access, retries, failure records,
-  idempotency, evaluation subsets). They are explicitly excluded from this task rather than
-  guessed into the initial migration.
+## What the agent checked
 
-## Proposed sequence after approval
+- The main app repository at `d8a81704d775c029372526d3458799d4ce5e790d` contained only a README.
+- The research repository at `22a39b63526a696595ee5eb42b9bc790514464b9` contained model training,
+  data processing, evaluation and tests, but no application database.
+- The detailed design supplies the table fields and relationships. The iteration plan explains
+  why later features need them. The October 9 meeting supports background analysis jobs.
+- The new starter setup runs a basic API and web page. Database tools are installed, but the
+  table definitions and setup scripts have not been written.
+- Login sessions, access rules, retries and several later records still need design decisions.
+  They are left out of this first task rather than filled in with guesses.
 
-1. **Check authorization and baseline.** Read `AGENTS.md`, task/specs/decision register and current
-   Git state again. Confirm team/instructor approval. Run `make verify` before changing behavior.
-2. **Introduce database configuration.** Add `backend/app/db/` for a SQLAlchemy base and engine/session
-   factory. Read a supplied `DATABASE_URL`; fail clearly when missing. Do not connect at module
-   import or from `/health`. Keep credentials out of logs and use bounded connections.
-3. **Define the four core models.** Implement the exact field/nullability/relationship contract in
-   `data-model.md`, explicit UUID/timestamp values, role/status checks, JSON-object permissions,
-   unique keys, positive sample interval and documented indexes. Use named constraints and
-   restrictive parent deletes. Do not add hidden defaults or seed real users/model records.
-4. **Initialize Alembic.** Add a root configuration and a migrations directory connected to the same
-   model metadata/URL. Generate and manually inspect the initial migration: parent tables first,
-   then asset and job; reverse dependency order on downgrade. No imports from the research stack.
-5. **Verify on disposable PostgreSQL.** Add integration fixtures using isolated test state, run fresh
-   upgrade, duplicate/invalid/FK/nullability checks, valid synthetic chain, deletion restriction,
-   second upgrade and downgrade/re-upgrade. Fail or explicitly skip when a local DB is unavailable;
-   the dedicated CI database job must fail rather than silently skip required coverage.
-6. **Extend CI and run instructions.** Add a PostgreSQL 17 service with a health check and test-only
-   credentials. Run migrations and integration tests plus existing checks. Document how developers
-   supply `DATABASE_URL`; migration commands must not default to a hosted database.
-7. **Review the diff and evidence.** Confirm only four tables were introduced; no secrets, client
-   assets, endpoint implementation or research changes. Report commands, results and remaining
-   limits, then present the PR for team review.
+## Steps to take after approval
 
-## Expected files
+1. **Confirm approval and check the starting point.** Read `AGENTS.md`, the task and related
+   documents again. Check teammates' latest changes, confirm team/instructor approval, and
+   run `make verify` before changing anything.
+2. **Set up the database connection.** Add connection code under `backend/app/db/` using
+   SQLAlchemy. Read the address from `DATABASE_URL` and give a clear error if it is missing.
+   Keep passwords out of logs and limit open connections. Importing a module or requesting
+   `/health` must not connect to the database.
+3. **Define the four tables.** Follow `data-model.md` for Account, ModelVersion, MediaAsset and
+   AnalysisJob. Preserve required and optional fields, IDs, timestamps, links and allowed values.
+   Add checks for unique values, JSON-object permissions and a positive sampling interval.
+   Name the database rules and add the listed indexes. Require explicit IDs/timestamps and block
+   deletion of a parent record while other records depend on it. Do not add real users or model data.
+4. **Write the repeatable setup script.** Configure Alembic to use the same table definitions
+   and database address. Review its generated migration. Create accounts/models before assets/jobs;
+   remove tables in the opposite order when undoing the migration. Do not import the research tools.
+5. **Test on a disposable PostgreSQL database.** Test a valid set of made-up records, duplicates,
+   invalid values, missing required values, broken links and blocked deletions. Run setup twice,
+   then undo and rerun it. Local checks must clearly report a missing database; the required GitHub
+   database check must fail rather than quietly skip its tests.
+6. **Add GitHub checks and instructions.** Give CI a PostgreSQL 17 test service and test-only
+   credentials. Run the new migration/database tests and all existing checks. Explain how to set
+   `DATABASE_URL`; do not default to a hosted database that might contain real data.
+7. **Review and report.** Check that only the four planned tables were added and that no private
+   data, new app endpoints or research changes slipped in. Report the checks, results and remaining
+   limits, then submit the changes for team review.
 
-- `backend/app/db/`: configuration, base/session utilities and the four model definitions.
-- `alembic.ini`, `backend/migrations/`: Alembic environment and reviewed initial revision.
-- `backend/tests/`: real-PostgreSQL constraint and migration tests using synthetic data.
-- `.github/workflows/verify.yml`, `Makefile`, `docs/development.md`: explicit database verification.
-- Existing core specifications only if team-approved corrections are needed; preserve their history.
+## Files expected to change
 
-## Validation mapped to acceptance
-
-| Checks | Criteria |
+| Location | Purpose |
 | --- | --- |
-| Fresh upgrade, schema inventory, repeat upgrade, downgrade/re-upgrade | AC-01, AC-05 |
-| Synthetic insert/readback, exact FK/UUID/JSON/timezone behavior | AC-02, AC-04 |
-| Uniqueness, invalid enum, JSON type, positive interval and FK failures | AC-03 |
-| Restricted parent deletion and index inspection | AC-06 |
-| Full local/CI checks with PostgreSQL, diff/privacy review | AC-07, AC-08 |
+| `backend/app/db/` | Database connection code and the four table definitions |
+| `alembic.ini`, `backend/migrations/` | Database setup settings and the first migration |
+| `backend/tests/` | Tests using real PostgreSQL and made-up records |
+| `.github/workflows/verify.yml`, `Makefile` | Commands and automated database checks |
+| `docs/development.md` | Instructions for running and checking the database |
 
-No GPU or actual inference is needed. Do not substitute SQLite for PostgreSQL's JSONB behavior.
-Rollback checks are safe only on disposable test databases. Production migration rollback and
-retention/deletion services require a later operational design.
+Change the specifications only if the team approves a correction, and keep a record of that change.
 
-## Agent's critical assessment — not a team review
+## How the checks prove completion
 
-The plan follows the stated relational architecture and async job dependency, and keeps product
-implementation outside readiness preparation. Its four-table scope avoids guessing unresolved
-provider, permission and worker policies. Risks to discuss:
+The AC numbers refer to the [task's acceptance criteria](001-database-foundation.md).
 
-- A database task is useful before features, but the team may prefer identity or API contract work
-  first. If so, replace the task and regenerate its plan before claiming review.
-- JSONB permissions are structurally constrained here but do not implement authorization.
-- The design's full schema omits fields needed by later services; D-02/D-07/D-09 remain real gates.
-- Restrictive deletion is safe for this foundation but is not the final retention/anonymization policy.
-- PostgreSQL was not available during preparation; the first task must prove migrations on it.
-- The application still needs a separately validated translation from research predictions.
+| Check | Criteria covered |
+| --- | --- |
+| Create tables, check the table list, repeat setup, undo and rerun | AC-01, AC-05 |
+| Save/read made-up records with correct IDs, links, permissions and timestamps | AC-02, AC-04 |
+| Reject duplicates, invalid values and broken links | AC-03 |
+| Block unsafe parent deletion and check the planned indexes | AC-06 |
+| Run local/GitHub checks and review instructions/private-data handling | AC-07, AC-08 |
 
-## Stop here
+No GPU or model run is needed. Use PostgreSQL, not SQLite, because the database-specific fields
+and rules must be tested. Undoing migrations is destructive and must be tested only on disposable
+databases. Handling real deployments and data deletion needs a later plan.
 
-No step above has been executed as feature implementation. The current branch only prepares
-specifications, dependencies, local scaffold and verification. The team must use the review worksheet
-to record its own assessment before implementation begins.
+## Agent's assessment — for the team to discuss
+
+This task provides records needed by several later features without guessing unresolved login,
+hosting or worker rules. It also fits the assignment's requirement to plan before implementation.
+The team should consider these limits:
+
+- If login or the API design is a better first task, replace this task and review a new plan.
+- Storing permissions as JSON does not make access checks work; that is later implementation.
+- Some fields needed by later features are still missing from the design (D-02, D-07, D-09).
+- Blocking deletion is the proposed starting rule, not the final data-retention policy.
+- PostgreSQL was unavailable during preparation, so the task must prove the database setup works.
+- The app still needs a tested translation between research results and its own result format.
+
+## Stop here for this assignment
+
+The steps above have not been implemented. The current branch contains documents, software
+setup and checks only. The team must record its own feedback in the review worksheet before
+implementation starts. This agent assessment does not count as a team review.

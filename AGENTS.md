@@ -1,61 +1,60 @@
 # Instructions for agents working on StreamSense
 
-## Read authoritative sources first
+## Read the project documents first
 
-Start with `docs/README.md`, then the specifications relevant to the task. Requirements and
-source precedence are in `docs/sources.md`; unresolved questions are in `docs/decisions.md`.
-Use `docs/architecture.md`, `docs/data-model.md`, `docs/api.md`, `docs/security.md`,
-`docs/ml-integration.md`, and `docs/design/` as the application specification.
-The Figma prototype illustrates interactions; sample metrics and severity values are not
-measured results or permission to override the written specification.
+Start with `docs/README.md`, then read the documents needed for the task. `docs/sources.md`
+explains where requirements came from. `docs/decisions.md` lists questions the team still needs
+to answer. The architecture, data, API, security, ML and design documents describe the planned app.
+Figma shows proposed interactions; its example scores and severity ratings are not measured results.
 
-## Respect the preparation boundary
+## Stop at the assignment's limit
 
-This is a Development Readiness submission. Environment setup is allowed. TASK-001 is
-**plan only** until the team records its review and instructor implementation approval.
-Do not create application tables, migrations, login, uploads, inference, or review features
-as part of reviewing that plan. Do not claim team review or client approval on their behalf.
+This is a Development Readiness submission. Preparing the environment is allowed. TASK-001 is
+**plan only** until the team records its review and the instructor approves implementation.
+Do not build its database tables, migration scripts, login, uploads, analysis or review features
+while reviewing the plan. Never claim that a teammate, client or instructor approved something
+unless that approval has actually been recorded.
 
-## Approach nontrivial work
+## How to approach larger tasks
 
-1. Read the task, related specifications, current code, and existing tests.
-2. Identify affected components, requirements, privacy implications, and missing decisions.
-3. Propose a scoped plan with acceptance criteria, verification, and failure behavior.
-4. Resolve blocking ambiguities with the team before implementing dependent behavior.
-5. Once authorized, make focused changes, run relevant checks, and report results honestly.
+1. Read the task, relevant documents, existing code and tests.
+2. Identify what must change, how it affects private data, and what is still unclear.
+3. Propose a plan with a clear scope, completion criteria, tests and expected failure handling.
+4. Ask the team about decisions that must be settled before the affected work can begin.
+5. Once approved, make focused changes, run the checks and report the results honestly.
 
-Routine implementation details may be chosen and explained. Changes to product scope,
-label meaning, evaluation splits, retention, access policy, or client hosting require a
-recorded team/client decision as applicable. Continue independent work while questions are open.
+You may choose and explain routine coding details. Changes to project scope, label meaning,
+data splits, data retention, access rules or hosting need a recorded team/client decision as
+appropriate. Continue work that does not depend on an unanswered question.
 
-## Architectural constraints
+## Follow the chosen design
 
-- React/TypeScript owns presentation. FastAPI owns authorization and workflow.
-- GPU inference and media decoding run in a separate worker; HTTP requests enqueue jobs.
-- PostgreSQL stores metadata and state. Private media and checkpoints stay outside Git.
-- Keep API contracts and research outputs distinct; never silently rename or reinterpret fields.
-- Preserve model output separately from human reviews. A confirmation is not crew delivery.
-- Do not add live stream ingestion, Slack delivery, automatic stream shutdown, or game-state detection.
-- Unknown severity stays unavailable; do not copy image severity onto each defect.
-- Validation chooses models/prompts/thresholds. The final test set stays locked.
-- Never fabricate metrics, inference results, overlays, test success, or deployment status.
+- React/TypeScript handles the screens. FastAPI checks access and handles app requests.
+- A separate background worker decodes videos and runs the model. API requests add jobs to a queue.
+- PostgreSQL stores records and job status. Private media and saved models stay outside Git.
+- Translate research outputs into the app's format explicitly; do not silently change field meanings.
+- Keep model results separate from human reviews. Confirming an alert does not notify a crew.
+- Do not add production-stream access, Slack delivery, automatic shutdown or game-state detection.
+- Leave unknown severity unavailable; do not copy an image's severity onto each defect.
+- Use validation data to choose models, prompts and thresholds. Keep the final test set locked.
+- Never invent results, heat maps, passing tests or deployment status.
 
-## Verification
+## Check the work
 
-Use `make setup` with committed lockfiles and `make verify` before proposing a merge.
-The baseline checks are Python lint/format, pytest, frontend lint, TypeScript and production build.
-For TASK-001, also test migrations and constraints against real disposable PostgreSQL;
-SQLite is not a substitute for PostgreSQL JSONB/constraint behavior.
-For later behavior, add focused tests for authorization, invalid inputs, concurrent reviews,
-worker retries, and provenance. Do not add tests that merely repeat static implementation details.
-Report skipped checks and missing services. Update `docs/readiness/verification.md` when
-preparation evidence changes; never turn an unexecuted check into a pass.
+Use `make setup` and `make verify` before proposing a merge. The saved dependency versions must
+stay reproducible. Checks cover Python code style/tests and frontend code style, types and build.
+For TASK-001, test database setup scripts and rules on a disposable PostgreSQL database.
+SQLite cannot prove that PostgreSQL's JSONB fields and rules behave correctly.
+For later features, test access checks, bad inputs, conflicting reviews, retries and the ability
+to trace results to their source. Avoid tests that only repeat the code being tested.
+Report missing services and skipped checks. Update `docs/readiness/verification.md` when results
+change. A check that was not run is not a pass.
 
-## Files, secrets, and collaboration
+## Protect files and teammates' work
 
-Keep secrets in ignored environment files. Never commit client media, label rows, model
-predictions, checkpoints, signed links, personal contact information, or meeting recordings.
-Use synthetic data for tests and examples. Do not upload client assets to external services.
-Review staged paths and contents before publishing; `.gitignore` is not an enforcement guarantee.
-Work on a branch and submit a focused pull request. Do not overwrite teammates' changes.
-Do not change deployment/account permissions or publish a live service as part of local setup.
+Keep secrets in ignored environment files. Never commit client media, label rows, predictions,
+saved models, private viewing links, personal contact details or meeting recordings.
+Use made-up test data. Do not upload client assets to external services.
+Review the files and their contents before publishing; `.gitignore` alone cannot prevent leaks.
+Use a branch and a focused pull request. Do not overwrite teammates' changes, change account
+permissions or publish a live service as part of local setup.

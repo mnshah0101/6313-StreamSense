@@ -46,3 +46,10 @@ Prepared in [pull request #1](https://github.com/mnshah0101/6313-StreamSense/pul
 Chang’s fork because the connected account has read-only access to the team repository.
 An authorized maintainer must review/merge it. GitHub reported the PR mergeable at creation,
 but this is not team approval or CI success. Check hosted CI again during the team review.
+
+## Readability update
+
+The documents were revised to explain the purpose of each step in plain language, with a short
+glossary for technical terms. Exact database fields, API paths and setup commands remain in the
+detailed references. Internal document links and whitespace were checked again. This update
+changed documentation only; it did not change code or the earlier test results.
