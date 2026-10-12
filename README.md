@@ -49,6 +49,7 @@ make web  # http://127.0.0.1:5173 — preparation page only
 No GPU, account credentials, database, or client footage is required for these checks.
 An optional PostgreSQL development service is defined in `compose.yaml`; the database schema
 and migrations are the **planned first task**, not part of this preparation scaffold.
+GitHub also runs a required PostgreSQL connection check; see `make verify-db` in the development guide.
 
 ## Existing model work
 

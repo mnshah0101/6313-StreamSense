@@ -59,12 +59,15 @@ changed documentation only; it did not change code or the earlier test results.
 
 The readiness update adds `make verify-db` and a disposable PostgreSQL 17 service in GitHub
 Actions. This checks connectivity, JSONB and timezone-aware timestamp handling without creating
-application tables or migrations. A hosted pass will be linked here after it is observed.
+application tables or migrations. **PASS:** [run 38195521600](https://github.com/mnshah0101/6313-StreamSense/actions/runs/38195521600)
+completed all checks, including `make verify-db`, using the update at `a86c307` through PR #3.
+This is an observed real PostgreSQL connection in GitHub, not a claim that local Docker ran.
 
 Local verification was repeated after the update: Python checks, both scaffold tests, frontend
 lint and frontend build passed. The database command was also checked with a missing URL, an
 unavailable service and a non-PostgreSQL URL. All three returned failure without printing the
-connection details. These negative checks do not establish a successful database connection.
+connection details. Those negative checks verify error handling; the hosted run above supplies successful connection evidence.
+All 47 relative Markdown links resolved, and the Git whitespace check passed.
 
 The new [review guide](review-guide.md) maps all five rubric categories to evidence and explains
 the plan's tradeoffs. It supports team preparation; it does not certify individual understanding

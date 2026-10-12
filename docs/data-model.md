@@ -27,9 +27,10 @@ The database must reject missing links, duplicate account subjects/file keys, no
 sampling intervals and invalid roles or job states. Add indexes—a way to speed up lookups—for
 jobs by `(status, created_at)` and assets by `(owner_id, created_at)`.
 
-For the first task, propose explicit IDs/timestamps and block deletion of a record while other
-records depend on it. Do not automatically create accounts, assign default roles, delete linked
-records or add real model records. The team must review these choices. Later deletion work must
+For the accepted first-task plan, require explicit IDs/timestamps and block deletion of a record
+while other records depend on it. Do not automatically create accounts, assign default roles, delete linked
+records or add real model records. Chang confirmed team acceptance of this bounded plan; see the [review record](readiness/team-review.md).
+Later deletion work must
 also remove files and handle anonymous audit records (D-06).
 
 ## Tables for later tasks

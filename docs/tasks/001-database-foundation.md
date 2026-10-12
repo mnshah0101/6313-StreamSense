@@ -30,7 +30,7 @@ Preserve the specified record IDs, timestamps, required links, allowed roles/job
 values. Permissions must be a JSON object, and the sampling interval must be positive. Add the
 listed indexes to support record lookups. Use explicit IDs and timestamps rather than hidden
 defaults. The proposed starting rule blocks deletion of records that other records still need.
-The team must review that rule; the full deletion policy is later work.
+Team acceptance of this bounded rule is recorded; the full deletion policy is later work.
 
 Do not add real accounts, saved model records or client files. This task does not build login,
 API routes, uploads, workers, video processing, alerts, reviews or deployment. It does not change
