@@ -1,57 +1,71 @@
-# Team review and Go/No-Go preparation
+# Team review and submission readiness
 
-**Status: pending.** This worksheet is intentionally incomplete until the team reviews the work.
-Prepared materials and agent commentary do not establish team understanding or approval.
+**Status: accepted for the readiness submission. Implementation has not started.**
 
-## Review the first task and plan together
+On October 11, 2026, Chang confirmed that Moksh, Thomas and Chang had reviewed and agreed to
+the project decisions and proposed plan. This records Chang's confirmation of the team's review;
+it does not claim a new meeting took place or that each person separately ran the software.
+Instructor approval to begin implementation remains pending for the Go/No-Go Review.
 
-Read `../tasks/001-database-foundation.md` and `../tasks/001-agent-plan.md`, then answer in your own words:
+## Review outcome
 
-1. Do we want to build these four database tables first? Why?
-2. Does the plan match our design and database diagrams? Which rules are missing or wrong?
-3. Do we agree on how IDs, timestamps and permissions are stored, and on blocking deletion of records that other records need?
-4. Do the planned tests show that each completion requirement is met? Which failure case should be added?
-5. Which questions can wait, and which need answers before this task starts?
-6. What would we change in the agent's plan? Record concrete corrections, or explain why none are needed.
-
-| Required record | Team entry |
+| Item | Recorded outcome |
 | --- | --- |
-| Review date / participants | Pending |
-| Task owner | Pending |
-| Plan verdict: accept / revise / replace | Pending |
-| Reasons and requested corrections | Pending |
-| Corrections applied and checked by | Pending |
-| Instructor implementation approval/date | Pending |
+| Team members covered by the confirmation | Moksh Shah, Thomas Li, Rui Chang Lyu (Chang) |
+| Confirmation recorded | October 11, 2026, through Chang |
+| First task | TASK-001: Account, ModelVersion, MediaAsset and AnalysisJob database tables |
+| Plan verdict | Accept the proposed task and plan as written for this submission |
+| Requested changes | No further technical changes requested; simpler wording was requested and applied |
+| Responsibility | Parallax team; choose the individual implementation lead before work begins |
+| Implementation | Not started; awaiting instructor go/no-go |
 
-The agent's critique in the plan is provided for discussion. Do not relabel it as the team's feedback.
+## Why the accepted plan fits the project
 
-## What each team member should be able to explain
+The following summarizes the reasoning and limits in the accepted task and plan; it is not
+a transcript or a quotation from individual teammates.
 
-Each member should be able to explain the following without reading an AI-generated script:
+- **Useful first step:** users, uploaded files, model versions and jobs provide records needed
+  by later login, upload and analysis features. This follows the detailed design and iteration plan.
+- **Clear scope:** the task creates only four tables and their setup scripts. It does not claim
+  to build login, video analysis, review screens or the background worker.
+- **Checkable results:** the proposed tests cover valid records, duplicates, missing links,
+  invalid values, required fields, safe repeat setup and undoing setup on a disposable database.
+- **Important limits:** storing permissions does not enforce access. Blocking linked-record
+  deletion is a starting rule, not the final retention policy. Model results still need a tested
+  translation into the app's format.
+- **Questions left for later features:** login provider/access rules, hosted services, upload
+  limits, worker retries and demo timing remain listed in the decision document. They must be
+  settled before those features are built; they are not delegated to the agent to guess.
 
-- Why model analysis runs separately from web requests and how results reach the timeline as they arrive.
-- How a review links back through its alert and model result to the exact frame, job and uploaded file.
-- Why model output and human review are stored separately.
-- Why one severity rating for an image cannot be treated as a tested rating for each defect.
-- Why settings are chosen using validation data, while final test data is kept separate.
-- What the prototype demonstrates versus what remains unimplemented, especially multiple videos.
-- How to install/run/check the repository, and which external-service checks remain unverified.
-- Where the agent finds specifications and when it must stop for a decision.
+The team accepts this bounded first task. Acceptance for the readiness submission is separate
+from instructor permission to implement it or client approval of hosting and data use.
 
-| Member | Documents/plan reviewed | Can explain design and limitations | Notes/corrections |
-| --- | --- | --- | --- |
-| Moksh Shah | Pending | Pending | Pending |
-| Thomas Li | Pending | Pending | Pending |
-| Rui Chang Lyu (Chang) | Pending | Pending | Pending |
+## Points to explain during the Go/No-Go Review
 
-## Before submitting the repository URL
+Each member should be ready to explain:
 
-- [ ] All members reviewed and corrected the specifications and proposed first-task plan.
-- [ ] Source conflicts and important unresolved decisions have been discussed and assigned.
-- [ ] Local setup/checks were reproduced by a team member; hosted CI status was checked.
-- [ ] Missing database/GPU/hosting evidence is accurately disclosed, not marked as passed.
-- [ ] No private client artifacts, source PDFs, credentials or meeting recordings are tracked.
-- [ ] The readiness PR is merged and the repository root links to all assignment materials.
-- [ ] AI use is disclosed accurately and no feature implementation was done before approval.
+- Why model analysis runs separately from web requests and how results reach the timeline.
+- How a review links back to the exact model result, frame, job and uploaded file.
+- Why reviews do not replace the model's original result.
+- Why an image-level severity rating cannot stand in for validated per-defect severity.
+- Why settings are chosen on validation data and the final test set stays separate.
+- What exists now, what the prototype illustrates and what still needs implementation.
+- How to run the starter setup and checks, and what those checks do not prove.
+- Where the agent finds the specifications and which decisions require team input.
 
-Submission: `https://github.com/mnshah0101/6313-StreamSense` — one link per team.
+## Submission evidence
+
+- [x] Team agreement and acceptance of the plan recorded through Chang's confirmation.
+- [x] Specifications, AGENTS.md, first task and agent plan are linked from the README.
+- [x] Local starter checks and GitHub automated checks passed; see the verification record.
+- [x] Database/GPU/hosting checks that were not run are disclosed.
+- [x] Original client data, source PDFs, private recordings and credentials are excluded.
+- [x] Preparation materials are in the main repository; AI assistance is disclosed.
+- [x] The proposed database task remains unimplemented.
+
+An independent setup run by each teammate has not been recorded. Important later design
+questions remain in `../decisions.md`; their presence is a readiness limitation, not a claim
+that the entire application is ready to implement without further decisions.
+
+Submit one repository link for the team:
+https://github.com/mnshah0101/6313-StreamSense

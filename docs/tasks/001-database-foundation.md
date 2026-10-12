@@ -1,7 +1,9 @@
 # First task: set up the core database
 
-**TASK-001 — proposed; planning only. Implementation has not started.**
-The team will assign an owner during review. Team review and instructor approval are pending.
+**TASK-001 — accepted for planning; implementation has not started.**
+Chang confirmed the team's acceptance on October 11, 2026. Responsibility remains with the
+Parallax team; an individual lead will be selected before implementation. Instructor approval
+is pending. See the [team review record](../readiness/team-review.md).
 
 ## Why start here?
 

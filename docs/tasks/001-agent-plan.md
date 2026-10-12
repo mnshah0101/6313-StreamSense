@@ -1,6 +1,8 @@
 # Proposed plan for the first task
 
-**Prepared October 11, 2026. Not implemented. Team review pending.**
+**Prepared October 11, 2026. Not implemented. Team acceptance confirmed by Chang on October 11.**
+
+See the [team review record](../readiness/team-review.md). Instructor implementation approval is still pending.
 
 The first task is to create four connected database tables. This plan explains how an agent
 would do that after approval. A database migration is a saved script that creates or changes
@@ -90,5 +92,5 @@ The team should consider these limits:
 ## Stop here for this assignment
 
 The steps above have not been implemented. The current branch contains documents, software
-setup and checks only. The team must record its own feedback in the review worksheet before
-implementation starts. This agent assessment does not count as a team review.
+setup and checks only. Team acceptance is recorded separately in the review record. This agent assessment is
+background reasoning, not a transcript of team discussion. Implementation still requires instructor approval.

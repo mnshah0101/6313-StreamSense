@@ -1,7 +1,8 @@
 # Project documents
 
 These documents explain what we plan to build and what a developer needs to know before starting.
-They are based on the team's earlier work and still need team review.
+They are based on the team's earlier work. Chang has confirmed the team's review and agreement;
+see the [review record](readiness/team-review.md). Unresolved decisions remain listed separately.
 
 **Start with the architecture, user flows and first task.** The database and API documents contain
 more detail for whoever builds those parts. The [short glossary](glossary.md) explains technical
