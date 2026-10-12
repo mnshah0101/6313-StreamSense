@@ -1,0 +1,19 @@
+# Optional local database for the first implementation task, not a deployment stack.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: streamsense
+      POSTGRES_PASSWORD: local-development-only
+      POSTGRES_DB: streamsense
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamsense -d streamsense"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  postgres_data:
