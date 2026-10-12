@@ -1,0 +1,25 @@
+# Local dependencies and build outputs
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+node_modules/
+dist/
+.coverage
+htmlcov/
+.DS_Store
+# Secrets and private project artifacts
+.env
+.env.*
+!.env.example
+data/
+outputs/
+checkpoints/
+mlruns/
+private/
+*.pt
+*.pth
+*.safetensors
+*.ckpt

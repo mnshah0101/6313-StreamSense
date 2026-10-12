@@ -1,0 +1,21 @@
+[project]
+name = "streamsense-app"
+version = "0.1.0"
+description = "StreamSense application development-readiness scaffold"
+requires-python = ">=3.11,<3.12"
+dependencies = ["fastapi", "uvicorn", "sqlalchemy>=2,<3", "alembic", "psycopg[binary]>=3,<4"]
+
+[dependency-groups]
+dev = ["pytest", "httpx", "ruff"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["backend"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
