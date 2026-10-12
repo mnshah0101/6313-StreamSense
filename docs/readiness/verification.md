@@ -25,7 +25,7 @@ Preparation host: macOS arm64; Python 3.11.17, Node 24.19.0, uv 0.13.0.
 | Frontend in browser | PASS; preparation page renders and states product features await approval |
 | Internal Markdown links | PASS; all relative document links resolve |
 | Git whitespace check | PASS |
-| Hosted GitHub Actions | Pending; workflow included, remote status must be checked on the PR |
+| Hosted GitHub Actions | No hosted run/check was visible when PR #1 was opened; workflow included, execution remains unverified |
 
 The pytest warning is from Starlette's test client deprecating its `httpx` integration in favor
 of `httpx2`; it did not fail either test. Resolve it in a dependency-maintenance change rather
@@ -39,3 +39,10 @@ than hide warnings. These two tests do not validate product behavior, database o
 - OIDC, Vercel/Blob, managed database and worker deployment: not configured or tested.
 - Product user flows/security tests: future feature work, not covered by two scaffold tests.
 - Team review and Go/No-Go permission: must be supplied by the team/instructor.
+
+## Publication
+
+Prepared in [pull request #1](https://github.com/mnshah0101/6313-StreamSense/pull/1) from
+Chang’s fork because the connected account has read-only access to the team repository.
+An authorized maintainer must review/merge it. GitHub reported the PR mergeable at creation,
+but this is not team approval or CI success. Check hosted CI again during the team review.
