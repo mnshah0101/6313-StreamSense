@@ -25,6 +25,7 @@ not built. Instructor implementation approval remains pending for the Go/No-Go R
 | Agent investigation and proposed plan | [TASK-001 implementation plan](docs/tasks/001-agent-plan.md) |
 | Team's critical review and readiness | [Team review record](docs/readiness/team-review.md) |
 | Checks that were actually run | [Verification record](docs/readiness/verification.md) |
+| Rubric evidence and plain-language explanations | [Review guide](docs/readiness/review-guide.md) |
 | Questions still to answer | [Decision list](docs/decisions.md) |
 
 ## Run locally
@@ -48,6 +49,7 @@ make web  # http://127.0.0.1:5173 — preparation page only
 No GPU, account credentials, database, or client footage is required for these checks.
 An optional PostgreSQL development service is defined in `compose.yaml`; the database schema
 and migrations are the **planned first task**, not part of this preparation scaffold.
+GitHub also runs a required PostgreSQL connection check; see `make verify-db` in the development guide.
 
 ## Existing model work
 

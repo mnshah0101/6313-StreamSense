@@ -30,7 +30,7 @@ Preserve the specified record IDs, timestamps, required links, allowed roles/job
 values. Permissions must be a JSON object, and the sampling interval must be positive. Add the
 listed indexes to support record lookups. Use explicit IDs and timestamps rather than hidden
 defaults. The proposed starting rule blocks deletion of records that other records still need.
-The team must review that rule; the full deletion policy is later work.
+Team acceptance of this bounded rule is recorded; the full deletion policy is later work.
 
 Do not add real accounts, saved model records or client files. This task does not build login,
 API routes, uploads, workers, video processing, alerts, reviews or deployment. It does not change
@@ -43,7 +43,7 @@ the research code or its final test data.
 | AC-01 | On a fresh PostgreSQL 17 test database, `alembic upgrade head` creates exactly the four app tables plus Alembic's own version table. |
 | AC-02 | Made-up account, model, asset and job records can be saved and read back with correct IDs, links, JSON permissions and timezone-aware timestamps. |
 | AC-03 | The database rejects duplicate account subjects/file keys, missing linked records, invalid roles/job states, non-object permissions and sampling intervals of zero or less. |
-| AC-04 | Required fields cannot be empty. Fields marked optional accept null without made-up replacement values. |
+| AC-04 | Required fields reject null. Fields marked optional accept null without made-up replacement values. Empty-text rules follow the field specification. |
 | AC-05 | Running setup twice is safe. Undoing setup with `downgrade base` and rerunning it works on a disposable database only. |
 | AC-06 | Deleting a record that other records depend on is blocked. The planned indexes exist. |
 | AC-07 | Tests run against real PostgreSQL locally and on GitHub, alongside existing checks. No passwords or client data are committed or logged. |

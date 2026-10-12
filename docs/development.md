@@ -61,7 +61,8 @@ make verify
 Runs Python lint/format, pytest, frontend lint and TypeScript/build. The two scaffold tests check
 that health is process-only and that product endpoints are absent. Future feature tests must
 verify behavior and failure boundaries, not simply repeat implementation.
-CI runs the same setup/checks on pull requests and main pushes with no client secrets. Hosted
+CI runs the same setup/checks plus `make verify-db` against a disposable PostgreSQL 17 service
+on pull requests and main pushes with no client secrets. Hosted
 execution is only verified when a successful GitHub Actions run is recorded; a workflow file alone
 is not proof of a passing remote run. Fork PRs may require a maintainer to approve the first run.
 
@@ -72,17 +73,30 @@ PostgreSQL 17, localhost port 5432, a persistent development volume and disposab
 credentials. Do not reuse the example password on a hosted service.
 
 ```sh
-cp .env.example .env  # only if you do not already have a local .env
 make db-up
+export DATABASE_URL='postgresql+psycopg://streamsense:local-development-only@127.0.0.1:5432/streamsense'
+make verify-db
 # Later, when finished:
 make db-stop
 ```
+
+`make verify-db` connects to the supplied database, checks PostgreSQL major version 17 and
+round-trips a JSON object and a timezone-aware timestamp. It creates no tables and changes no
+stored records. Missing settings, failed connections and incompatible versions fail the check;
+it never silently skips. Error output omits connection details to avoid printing passwords.
+Use the local development service or an explicitly disposable test database.
+
+If the check fails, ensure the database is running and healthy, the port is free, the credentials
+match the service, and `DATABASE_URL` is exported in the same terminal. The URL must use the
+`postgresql+psycopg` driver installed by `make setup`. CI supplies its own disposable credentials.
+The API health endpoint remains independent of the database.
 
 No code currently reads `.env`, and no database setup scripts (migrations) exist. TASK-001 will define environment loading,
 initialize Alembic and implement/test its first migration after approval. Until then, do not
 claim `alembic upgrade head` creates a schema. `db-stop` preserves the local volume. If a developer
 later wants to remove that volume, they must intentionally accept losing its local contents.
-The service has not been exercised on a machine without Docker; see the verification record.
+Local Compose could not be exercised on the preparation machine because Docker is unavailable.
+The separate GitHub database check is recorded in the verification record.
 
 ## Secrets and data
 

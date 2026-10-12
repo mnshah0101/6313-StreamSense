@@ -1,7 +1,7 @@
 UV ?= uv
 NPM ?= npm
 
-.PHONY: setup verify api web db-up db-stop
+.PHONY: setup verify verify-db api web db-up db-stop
 setup:
 	$(UV) sync --locked
 	$(NPM) --prefix frontend ci
@@ -12,6 +12,9 @@ verify:
 	$(UV) run --locked pytest
 	$(NPM) --prefix frontend run lint
 	$(NPM) --prefix frontend run build
+
+verify-db:
+	$(UV) run --locked python scripts/check_database.py
 
 api:
 	$(UV) run --locked uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
