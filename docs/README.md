@@ -21,6 +21,7 @@ terms used throughout the documents.
 | [Decisions still needed](decisions.md) | What is settled and what the team must decide |
 | [Development guide](development.md) | How to install, run and check the starter setup |
 | [First task](tasks/001-database-foundation.md) | The first piece of implementation work we propose |
+| [Review guide and rubric evidence](readiness/review-guide.md) | How to explain the project and critically examine the first plan |
 
 The app will analyze uploaded sports footage. The course demo will use videos to simulate
 multiple streams and show results as they arrive. Model research already exists in a separate

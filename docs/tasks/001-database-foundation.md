@@ -43,7 +43,7 @@ the research code or its final test data.
 | AC-01 | On a fresh PostgreSQL 17 test database, `alembic upgrade head` creates exactly the four app tables plus Alembic's own version table. |
 | AC-02 | Made-up account, model, asset and job records can be saved and read back with correct IDs, links, JSON permissions and timezone-aware timestamps. |
 | AC-03 | The database rejects duplicate account subjects/file keys, missing linked records, invalid roles/job states, non-object permissions and sampling intervals of zero or less. |
-| AC-04 | Required fields cannot be empty. Fields marked optional accept null without made-up replacement values. |
+| AC-04 | Required fields reject null. Fields marked optional accept null without made-up replacement values. Empty-text rules follow the field specification. |
 | AC-05 | Running setup twice is safe. Undoing setup with `downgrade base` and rerunning it works on a disposable database only. |
 | AC-06 | Deleting a record that other records depend on is blocked. The planned indexes exist. |
 | AC-07 | Tests run against real PostgreSQL locally and on GitHub, alongside existing checks. No passwords or client data are committed or logged. |

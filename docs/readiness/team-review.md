@@ -40,6 +40,9 @@ a transcript or a quotation from individual teammates.
 The team accepts this bounded first task. Acceptance for the readiness submission is separate
 from instructor permission to implement it or client approval of hosting and data use.
 
+The [review guide](review-guide.md) adds plain-language explanations, concrete future test
+examples and a rubric evidence map. It is preparation support, not a new team-review transcript.
+
 ## Points to explain during the Go/No-Go Review
 
 Each member should be ready to explain:

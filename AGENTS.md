@@ -43,6 +43,8 @@ appropriate. Continue work that does not depend on an unanswered question.
 
 Use `make setup` and `make verify` before proposing a merge. The saved dependency versions must
 stay reproducible. Checks cover Python code style/tests and frontend code style, types and build.
+Run `make verify-db` with an explicit disposable PostgreSQL 17 `DATABASE_URL` to check database
+connectivity. CI requires this check; it does not create tables or prove TASK-001 complete.
 For TASK-001, test database setup scripts and rules on a disposable PostgreSQL database.
 SQLite cannot prove that PostgreSQL's JSONB fields and rules behave correctly.
 For later features, test access checks, bad inputs, conflicting reviews, retries and the ability

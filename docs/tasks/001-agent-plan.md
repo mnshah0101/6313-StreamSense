@@ -41,8 +41,8 @@ tables; it makes setup repeatable for every developer.
    invalid values, missing required values, broken links and blocked deletions. Run setup twice,
    then undo and rerun it. Local checks must clearly report a missing database; the required GitHub
    database check must fail rather than quietly skip its tests.
-6. **Add GitHub checks and instructions.** Give CI a PostgreSQL 17 test service and test-only
-   credentials. Run the new migration/database tests and all existing checks. Explain how to set
+6. **Extend GitHub checks and instructions.** Reuse the preparation workflow's PostgreSQL 17
+   service and disposable credentials. Add the new migration/database tests and all existing checks. Explain how to set
    `DATABASE_URL`; do not default to a hosted database that might contain real data.
 7. **Review and report.** Check that only the four planned tables were added and that no private
    data, new app endpoints or research changes slipped in. Report the checks, results and remaining
@@ -86,7 +86,8 @@ The team should consider these limits:
 - Storing permissions as JSON does not make access checks work; that is later implementation.
 - Some fields needed by later features are still missing from the design (D-02, D-07, D-09).
 - Blocking deletion is the proposed starting rule, not the final data-retention policy.
-- PostgreSQL was unavailable during preparation, so the task must prove the database setup works.
+- The preparation connection check does not create tables or prove migrations and constraints.
+  This task must still demonstrate all database acceptance criteria on PostgreSQL.
 - The app still needs a tested translation between research results and its own result format.
 
 ## Stop here for this assignment

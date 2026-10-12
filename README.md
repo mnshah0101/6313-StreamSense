@@ -25,6 +25,7 @@ not built. Instructor implementation approval remains pending for the Go/No-Go R
 | Agent investigation and proposed plan | [TASK-001 implementation plan](docs/tasks/001-agent-plan.md) |
 | Team's critical review and readiness | [Team review record](docs/readiness/team-review.md) |
 | Checks that were actually run | [Verification record](docs/readiness/verification.md) |
+| Rubric evidence and plain-language explanations | [Review guide](docs/readiness/review-guide.md) |
 | Questions still to answer | [Decision list](docs/decisions.md) |
 
 ## Run locally
