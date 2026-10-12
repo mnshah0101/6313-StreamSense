@@ -1,7 +1,8 @@
 # Decisions made and questions still open
 
-This list separates existing design choices from questions that still need answers. The people
-listed are suggested reviewers; they have not been assigned the work or recorded approval here.
+This list separates the design accepted for preparation from questions that still need answers.
+Chang confirmed the team's agreement on October 11, 2026; see the team review record. People listed
+for remaining questions are suggested reviewers, not new individual task assignments.
 
 ## Current design choices
 
@@ -20,7 +21,7 @@ listed are suggested reviewers; they have not been assigned the work or recorded
 
 | ID | Decision needed | Work that must wait | Who should resolve |
 | --- | --- | --- | --- |
-| D-01 | Confirm the drafted scope/specifications and first task; record instructor go/no-go | Feature implementation | All team members / instructor |
+| D-01 | Team acceptance confirmed by Chang on October 11; instructor go/no-go still pending | Feature implementation | Instructor; team records outcome |
 | D-02 | OIDC provider, session store/lifetime, invitation flow, permission vocabulary and asset-grant schema | Authentication and private data routes | Team; client for hosted access |
 | D-03 | Actual GPU host, managed DB provider/network access, Vercel/private-media feasibility, credentials and cost approval | Deployment and real-media demo | Team and Vijay |
 | D-04 | Binary precision/recall acceptance protocol, dataset version, latency statistic/batch/load, whether ~100 streams is a goal or reference | Model performance acceptance | Team and Vijay |
