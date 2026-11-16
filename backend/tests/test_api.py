@@ -637,3 +637,12 @@ def test_idle_worker_stops_its_machine(client, worker, tmp_path):
 
     with dbm.session() as db:
         assert db.get(WorkerState, "idle-w").state == "stopped"
+
+
+def test_large_upload_sizes_fit_postgres():
+    """Postgres INTEGER is 32-bit: byte counts of 10 GB uploads need BIGINT."""
+    from sqlalchemy import BigInteger
+
+    from app.models import Upload
+
+    assert isinstance(Upload.__table__.c.size.type, BigInteger)

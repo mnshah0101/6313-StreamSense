@@ -9,7 +9,7 @@ ReviewDecision is folded into Alert (immutable once written, version-checked).
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, ForeignKey, Index, String
+from sqlalchemy import JSON, BigInteger, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -310,7 +310,7 @@ class Upload(Base):
     s3_upload_id: Mapped[str]
     filename: Mapped[str] = mapped_column(default="")
     content_type: Mapped[str]
-    size: Mapped[int]
+    size: Mapped[int] = mapped_column(BigInteger)  # bytes; 10 GB overflows a 32-bit INTEGER
     status: Mapped[str] = mapped_column(default="uploading")  # uploading | completed | aborted
     requested_by: Mapped[str | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(default=now)
