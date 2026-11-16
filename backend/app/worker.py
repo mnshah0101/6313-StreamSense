@@ -15,6 +15,7 @@ import logging
 import math
 import os
 import queue
+import shutil
 import socket
 import threading
 import time
@@ -24,6 +25,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from datetime import UTC, datetime, timedelta
 from itertools import islice
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -37,6 +39,7 @@ from app.inference import Backend, build_backend
 from app.inference.base import FrameResult
 from app.media import POSTER_SIZE, MediaStore, build_store
 from app.models import Frame, Game, Job, Localization, ThresholdVersion, WorkerState
+from app.scheduler import queue_order, queued_jobs, should_yield
 from app.services import current_overlays, current_threshold, ensure_model_version, raise_alerts
 from app.video import MediaError, frame_count, poster, probe, sample
 
@@ -86,16 +89,17 @@ class Worker:
             res = db.execute(
                 update(Job)
                 .where(Job.status == "running", Job.lease_expires_at < utcnow())
-                .values(status="queued", worker_id=None, lease_expires_at=None)
+                .values(status="queued", worker_id=None, lease_expires_at=None, queued_at=utcnow())
             )
             db.commit()
             return res.rowcount or 0
 
     def claim(self) -> str | None:
         with dbm.session() as db:
-            for job_id in db.scalars(
-                select(Job.id).where(Job.status == "queued").order_by(Job.created_at).limit(5)
-            ):
+            # Shortest remaining work first, with aging (app/scheduler.py); try a few in order
+            # in case another worker wins the race for the first.
+            order = [j.id for j in queue_order(queued_jobs(db), self.s)][:5]
+            for job_id in order:
                 res = db.execute(
                     update(Job)
                     .where(Job.id == job_id, Job.status == "queued")
@@ -167,7 +171,12 @@ class Worker:
                     db.execute(
                         update(Job)
                         .where(Job.id == job_id)
-                        .values(status="queued", worker_id=None, lease_expires_at=None)
+                        .values(
+                            status="queued",
+                            worker_id=None,
+                            lease_expires_at=None,
+                            queued_at=utcnow(),
+                        )
                     )
                     db.commit()
             else:
@@ -210,8 +219,13 @@ class Worker:
                 "downloading",
                 lambda d, t: (f"{d / 2**20:.0f} / {t / 2**20:.0f} MB", d / max(t, 1)),
             )
-            try:  # S3: downloaded to a temp file for the duration of the job
-                path = stack.enter_context(self.store.local_copy(key, on_progress=progress))
+            cached = self._resume_file(job_id, key)
+            try:  # S3: downloaded to a temp file (kept if this job is paused, to resume fast)
+                if self.store.name == "s3" and cached.is_file():
+                    path = cached
+                    log.info("job %s: resuming from the local copy", job_id)
+                else:
+                    path = stack.enter_context(self.store.local_copy(key, on_progress=progress))
             except FileNotFoundError:
                 raise MediaError(
                     "media_missing", "The uploaded media is no longer available"
@@ -232,6 +246,9 @@ class Worker:
                     return
                 self._save_batch(job_id, game_id, batch, mv.id, threshold, localize_all, total)
                 self._beat("busy", job_id)  # throttled to every 10 s; keeps Status "online"
+                if self._yield_to_shorter(job_id, path, cached):
+                    return
+        cached.unlink(missing_ok=True)
         self._stage(job_id, "finishing", "Finishing up", None, force=True)
         with dbm.session() as db:  # the decoder is the truth if the container over-reported
             job = db.get(Job, job_id)
@@ -463,9 +480,57 @@ class Worker:
             job = db.get(Job, job_id)
             return job is not None and job.status == "running" and job.worker_id == self.id
 
+    # ---- scheduling ----------------------------------------------------------------------
+
+    def _resume_file(self, job_id: str, key: str) -> Path:
+        return Path(self.s.data_dir) / "resume" / f"{job_id}{Path(key).suffix}"
+
+    def _yield_to_shorter(self, job_id: str, path: Path, cached: Path) -> bool:
+        """Between batches: pause this job if a much shorter one is waiting (SRPT preemption).
+        Progress is already committed, so the job resumes from its next frame later."""
+        now_ = time.monotonic()
+        if now_ - getattr(self, "_last_sched", 0.0) < self.s.sched_check_sec:
+            return False
+        self._last_sched = now_
+        with dbm.session() as db:
+            job = db.get(Job, job_id)
+            shorter = should_yield(db, job, self.id, self.s) if job else None
+            if shorter is None:
+                return False
+            res = db.execute(
+                update(Job)
+                .where(Job.id == job_id, Job.worker_id == self.id, Job.status == "running")
+                .values(
+                    status="queued", worker_id=None, lease_expires_at=None, queued_at=utcnow(),
+                    preemptions=Job.preemptions + 1, attempts=Job.attempts - 1,  # not a failure
+                    stage="paused", stage_detail="Paused for a shorter video", stage_progress=None,
+                )
+            )  # fmt: skip
+            if job.game_id and res.rowcount:
+                db.get(Game, job.game_id).status = "queued"
+            db.commit()
+            if not res.rowcount:
+                return False
+            log.info(
+                "job %s paused at frame %s for shorter job %s", job_id, job.done_frames, shorter.id
+            )
+        if (
+            self.store.name == "s3" and path != cached
+        ):  # keep the video to resume without re-download
+            try:
+                cached.parent.mkdir(parents=True, exist_ok=True)
+                for old in sorted(cached.parent.glob("*"), key=lambda p: p.stat().st_mtime)[:-1]:
+                    old.unlink(missing_ok=True)  # keep at most two paused videos on disk
+                shutil.move(str(path), cached)
+            except OSError:
+                log.warning("could not keep the video of paused job %s", job_id, exc_info=True)
+        return True
+
     def _finish(
         self, job_id: str, status: str, code: str | None = None, detail: str | None = None
     ) -> None:
+        for f in (Path(self.s.data_dir) / "resume").glob(f"{job_id}.*"):
+            f.unlink(missing_ok=True)  # a paused job's kept video
         with dbm.session() as db:
             job = db.get(Job, job_id)
             if job is None:

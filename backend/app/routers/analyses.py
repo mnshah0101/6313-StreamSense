@@ -12,6 +12,7 @@ from app.config import Settings
 from app.db import get_db
 from app.media import POSTER_SIZE, MediaStore, TooLarge, receive
 from app.models import Game, Job, Upload
+from app.scheduler import estimate_frames
 from app.schemas import AnalysisOut, UploadComplete, UploadCreate, UploadOut, UploadPart
 from app.services import current_threshold, wake_gpu
 from app.video import MediaError, frame_count, poster, probe
@@ -189,6 +190,7 @@ def complete_upload(
     meta = body.model_dump(exclude={"parts"})
     date = meta.pop("date") or dt.date.today().isoformat()
     game, job = _create_game_and_job(db, s, up.game_id, up.key, None, user, date=date, **meta)
+    job.est_frames = estimate_frames(None, size, s)  # scheduling size until the worker probes it
     game.status = "queued"
     up.status = "completed"
     db.commit()

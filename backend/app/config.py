@@ -72,6 +72,15 @@ class Settings(BaseSettings):
     # A video alert needs this many consecutive flagged samples (1 sample = frame_interval_sec),
     # so one-off misfires stay on the timeline without paging anyone. Images always use 1.
     min_alert_frames: int = 2
+    # Scheduling (app/scheduler.py): shortest remaining work first, with preemption and aging.
+    sched_policy: Literal["srpt", "fifo"] = "srpt"
+    preempt: bool = True
+    sched_aging: float = 8.0  # video-seconds of priority gained per second waiting (~GPU speed)
+    preempt_ratio: float = 0.5  # switch only for a job under half my remaining work
+    preempt_min_frames: int = 60  # never pause a job with less than ~5 min of video left
+    max_preemptions: int = 3
+    sched_check_sec: float = 15.0  # how often a busy worker looks for a shorter job
+    sched_bytes_per_video_sec: int = 625_000  # size -> length guess until the video is probed
     min_labels_for_finetune: int = 50
 
     # Sign-in. "session": accounts + HttpOnly session cookie (default). "off": everyone is a

@@ -708,3 +708,71 @@ def test_busy_worker_stays_online_during_a_long_job(client, worker, tmp_path):
         db.commit()
     (g,) = client.get("/status").json()["live"]["gpus"]
     assert g["state"] == "busy" and g["jobId"] == jid
+
+
+# ---- scheduling: shortest remaining work first, preemption, aging --------------------------
+
+SCHED = {"batch_size": 2, "sched_check_sec": 0, "preempt_min_frames": 0}
+
+
+@pytest.mark.parametrize("settings_overrides", [SCHED])
+def test_queue_runs_shortest_job_first(client, worker, tmp_path):
+    long = analyze(client, mp4(tmp_path / "l.mp4", seconds=60)).json()["job"]["id"]
+    short = analyze(client, mp4(tmp_path / "s.mp4", seconds=10)).json()["job"]["id"]
+    assert client.get(f"/jobs/{short}").json()["queuePosition"] == 1
+    assert client.get(f"/jobs/{long}").json()["queuePosition"] == 2
+    assert worker.claim() == short
+
+
+@pytest.mark.parametrize("settings_overrides", [SCHED])
+def test_aging_lets_a_long_wait_win(client, worker, tmp_path):
+    long = analyze(client, mp4(tmp_path / "l.mp4", seconds=60)).json()["job"]["id"]
+    analyze(client, mp4(tmp_path / "s.mp4", seconds=10))
+    with dbm.session() as db:  # waited 10 s: 80 video-seconds of credit beats 50 s more work
+        db.get(Job, long).queued_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(seconds=10)
+        db.commit()
+    assert worker.claim() == long
+
+
+@pytest.mark.parametrize("settings_overrides", [{**SCHED, "sched_policy": "fifo"}])
+def test_fifo_policy(client, worker, tmp_path):
+    long = analyze(client, mp4(tmp_path / "l.mp4", seconds=60)).json()["job"]["id"]
+    analyze(client, mp4(tmp_path / "s.mp4", seconds=10))
+    assert worker.claim() == long
+
+
+@pytest.mark.parametrize("settings_overrides", [SCHED])
+def test_long_job_pauses_for_a_short_one_and_resumes(client, worker, tmp_path):
+    r = analyze(client, mp4(tmp_path / "l.mp4", seconds=60))  # 12 frames
+    long, gid = r.json()["job"]["id"], r.json()["game"]["id"]
+    assert worker.claim() == long
+    short = analyze(client, mp4(tmp_path / "s.mp4", seconds=10)).json()["job"]["id"]
+    worker.process(long)  # yields after its first batch
+    j = client.get(f"/jobs/{long}").json()
+    assert j["status"] == "queued" and j["stage"] == "paused" and 0 < j["doneFrames"] < 12
+    with dbm.session() as db:
+        job = db.get(Job, long)
+        assert job.preemptions == 1 and job.attempts == 0  # a pause is not a failed attempt
+    assert worker.claim() == short
+    worker.process(short)
+    assert client.get(f"/jobs/{short}").json()["status"] == "done"
+    run_all(worker)  # resumes the long job where it stopped
+    j = client.get(f"/jobs/{long}").json()
+    assert j["status"] == "done" and j["doneFrames"] == 12
+    idx = [f["index"] for f in client.get(f"/games/{gid}/frames").json()]
+    assert idx == list(range(12))  # nothing lost or analyzed twice
+
+
+@pytest.mark.parametrize("settings_overrides", [SCHED])
+def test_no_pause_while_another_gpu_is_idle(client, worker, tmp_path):
+    from app.models import WorkerState
+
+    long = analyze(client, mp4(tmp_path / "l.mp4", seconds=60)).json()["job"]["id"]
+    assert worker.claim() == long
+    analyze(client, mp4(tmp_path / "s.mp4", seconds=10))
+    with dbm.session() as db:
+        db.add(WorkerState(id="other-gpu", hardware="x", state="idle", started_at=datetime.now(UTC).replace(tzinfo=None),
+                           last_seen_at=datetime.now(UTC).replace(tzinfo=None)))  # fmt: skip
+        db.commit()
+    worker.process(long)
+    assert client.get(f"/jobs/{long}").json()["status"] == "done"  # the idle GPU takes the clip

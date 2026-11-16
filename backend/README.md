@@ -99,6 +99,19 @@ and keep the same users and roles.
 - Jobs report what they are doing for the UI: `stage` (queued with `queuePosition`,
   downloading with MB progress, checking, analyzing with `etaSec`, finishing) and a heartbeat.
 
+## Scheduling (shortest remaining work first, with preemption)
+
+GPU workers take the queued job with the **least video left to analyze**, not the oldest
+(`app/scheduler.py`; SRPT minimises mean turnaround). Sizes come from the probed length, or the
+upload size until a worker probes the file. A busy worker checks between batches: if every GPU is
+busy and a waiting job has under half its remaining work, it **pauses** (results so far are
+committed; it resumes from the next frame, from a local copy of the video) and runs the short job.
+
+Guards: waiting jobs gain priority over time (aging, so long matches never starve); only the
+job with the most work left is paused; never one nearly done; at most 3 pauses per job; never
+while another GPU is idle. A pause is not a failed attempt. Settings: `STREAMSENSE_API_SCHED_*`,
+`_PREEMPT*`, `_MAX_PREEMPTIONS` (`SCHED_POLICY=fifo` turns it off).
+
 ## Media storage (local or S3)
 
 The database keeps only keys; files live in the media store:

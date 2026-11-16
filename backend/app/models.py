@@ -101,6 +101,10 @@ class Job(Base):
     worker_id: Mapped[str | None] = mapped_column(default=None)
     lease_expires_at: Mapped[datetime | None] = mapped_column(default=None)
     attempts: Mapped[int] = mapped_column(default=0)
+    # Scheduling: estimated size before decoding, when it (re-)entered the queue, pauses so far.
+    est_frames: Mapped[int | None] = mapped_column(default=None)
+    queued_at: Mapped[datetime | None] = mapped_column(default=None)
+    preemptions: Mapped[int] = mapped_column(default=0, server_default="0")
     failure_code: Mapped[str | None] = mapped_column(default=None)
     failure_detail: Mapped[str | None] = mapped_column(default=None)
     # What the worker is doing right now, for the UI (never used for control flow).

@@ -120,8 +120,8 @@ def frame_out(f: Frame, loc: Localization | None) -> FrameOut:
 
 def job_out(j: Job, db: Session | None = None) -> JobOut:
     return JobOut(
-        stage="queued" if j.status == "queued" else (j.stage if j.status == "running" else None),
-        stage_detail=j.stage_detail if j.status == "running" else None,
+        stage=_stage(j),
+        stage_detail=j.stage_detail if j.status == "running" or _stage(j) == "paused" else None,
         stage_progress=j.stage_progress if j.status == "running" else None,
         queue_position=_queue_position(db, j),
         eta_sec=_eta(j),
@@ -170,15 +170,21 @@ def _media_kind(key: str | None) -> str | None:
     return "image" if key.rsplit(".", 1)[-1].lower() in ("jpg", "jpeg", "png") else "video"
 
 
+def _stage(j: Job) -> str | None:
+    if j.status == "queued":
+        return "paused" if j.preemptions and j.done_frames > 0 else "queued"
+    return j.stage if j.status == "running" else None
+
+
 def _queue_position(db: Session | None, j: Job) -> int | None:
+    """1-based place in the scheduler's order (shortest remaining work first, with aging)."""
     if db is None or j.status != "queued":
         return None
-    ahead = db.scalar(
-        select(func.count())
-        .select_from(Job)
-        .where(Job.status == "queued", Job.created_at < j.created_at)
-    )
-    return (ahead or 0) + 1
+    from app.config import get_settings
+    from app.scheduler import queue_order, queued_jobs
+
+    order = [q.id for q in queue_order(queued_jobs(db), get_settings())]
+    return order.index(j.id) + 1 if j.id in order else None
 
 
 def _eta(j: Job) -> float | None:
