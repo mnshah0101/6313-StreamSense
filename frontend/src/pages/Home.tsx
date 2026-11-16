@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { gameTitle } from '../data/format'
 import { CAMERAS, DEFECT_TYPES, SPORTS, worstSev as worstOf, type Game, type GameStatus } from '../data/types'
@@ -6,7 +6,7 @@ import { useStore } from '../store'
 import { useAuth } from '../auth'
 import { api, errorMessage } from '../api'
 import GameCard from '../components/GameCard'
-import { EmptyState, IconChevron, IconPlus, IconSearch, btnGhost, btnPrimary, inputCls } from '../components/ui'
+import { EmptyState, IconPlus, IconSearch, btnGhost, btnPrimary, inputCls } from '../components/ui'
 
 type StatusFilter = 'all' | GameStatus | 'needs-review'
 
@@ -41,7 +41,8 @@ export default function Home() {
   }, [filtering, q, sport, status, defect, camera, games])
 
   const filtered = useMemo(() => {
-    let list = status === 'needs-review' ? results.filter((g) => openFor(g) > 0) : results
+    const base = filtering ? results : games
+    let list = status === 'needs-review' ? base.filter((g) => openFor(g) > 0) : base
     list = [...list].sort((a, b) => {
       if (sort === 'severity') return worstSev(b) - worstSev(a)
       if (sort === 'title') return gameTitle(a).localeCompare(gameTitle(b))
@@ -49,18 +50,14 @@ export default function Home() {
     })
     return list
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results, status, sort, alerts])
+  }, [filtering, results, games, status, sort, alerts])
 
   const clear = () => { setQ(''); setSport('all'); setStatus('all'); setDefect('all'); setCamera('all') }
 
-  const needsReview = games.filter((g) => openFor(g) > 0).sort((a, b) => worstSev(b) - worstSev(a))
-  const live = games.filter((g) => ['live', 'processing', 'queued'].includes(g.status))
-  const recent = games.filter((g) => g.status === 'analyzed').sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime))
   const sports = [...SPORTS, ...games.map((g) => g.sport).filter((s) => !SPORTS.includes(s))]
   const cameras = [...new Set([...CAMERAS, ...games.map((g) => g.camera).filter(Boolean)])]
-  const bySport = [...new Set(sports)].map((s) => ({ sport: s, games: games.filter((g) => g.sport === s) })).filter((x) => x.games.length > 0)
 
-  const selectCls = `${inputCls} pr-7`
+  const selectCls = inputCls
 
   return (
     <div className="flex flex-col gap-6">
@@ -92,26 +89,19 @@ export default function Home() {
           <div className="text-sm text-text-secondary">No games yet.</div>
           {can('reviewer') && <Link to="/new" className={`${btnPrimary} inline-flex items-center gap-1.5`}><IconPlus />New Analysis</Link>}
         </div>
-      ) : filtering ? (
+      ) : (
         <section>
-          <div className="mb-3 text-xs text-text-secondary">{filtered.length} result{filtered.length === 1 ? '' : 's'}</div>
+          {filtering && <div className="mb-3 text-xs text-text-secondary">{filtered.length} result{filtered.length === 1 ? '' : 's'}</div>}
           {filtered.length === 0 ? (
             <EmptyState action={<button className={btnGhost} onClick={clear}>Clear</button>}>
               No matches.
             </EmptyState>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filtered.map((g) => <GameCard key={g.id} game={g} wide />)}
             </div>
           )}
         </section>
-      ) : (
-        <>
-          {needsReview.length > 0 && <Row title="Needs review" games={needsReview} />}
-          {live.length > 0 && <Row title="In progress" games={live} />}
-          {recent.length > 0 && <Row title="Recent" games={recent} />}
-          {bySport.map((x) => <Row key={x.sport} title={x.sport} games={x.games} />)}
-        </>
       )}
     </div>
   )
@@ -129,24 +119,5 @@ function Filter({ label, value, onChange, options, cls, noAll = false }: { label
         })}
       </select>
     </label>
-  )
-}
-
-function Row({ title, games }: { title: string; games: Game[] }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const scroll = (dir: number) => ref.current?.scrollBy({ left: dir * 560, behavior: 'smooth' })
-  return (
-    <section>
-      <div className="mb-2 flex items-baseline gap-3">
-        <h2 className="font-display text-base font-bold uppercase tracking-wide">{title}</h2>
-        <div className="ml-auto flex gap-1">
-          <button onClick={() => scroll(-1)} aria-label={`Scroll ${title} left`} className="rounded-lg border border-border-subtle p-1 text-text-secondary transition-colors hover:border-text-muted hover:text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"><IconChevron dir="left" /></button>
-          <button onClick={() => scroll(1)} aria-label={`Scroll ${title} right`} className="rounded-lg border border-border-subtle p-1 text-text-secondary transition-colors hover:border-text-muted hover:text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"><IconChevron /></button>
-        </div>
-      </div>
-      <div ref={ref} className="row-scroll -mx-6 flex gap-4 overflow-x-auto px-6 pb-1">
-        {games.map((g) => <GameCard key={g.id} game={g} />)}
-      </div>
-    </section>
   )
 }

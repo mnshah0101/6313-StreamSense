@@ -36,11 +36,12 @@ export function Kpi({ label, value, sub }: { label: string; value: ReactNode; su
   )
 }
 
-type Tone = 'red' | 'yellow' | 'green' | 'neutral'
+type Tone = 'red' | 'yellow' | 'green' | 'blue' | 'neutral'
 const tones: Record<Tone, string> = {
   red: 'bg-red-500/20 text-red-400',
   yellow: 'bg-yellow-500/20 text-yellow-400',
   green: 'bg-green-500/20 text-green-400',
+  blue: 'bg-sky-500/20 text-sky-300',
   neutral: 'bg-bg-card-hover text-text-secondary',
 }
 
@@ -70,18 +71,23 @@ export function DefectPill({ d, long = false }: { d: Detection; long?: boolean }
   )
 }
 
+/** Open-alert count at which a game's tag turns red (below it: yellow; zero: green). */
+export const ALERTS_RED = 10
+
 export function StatusPill({ status, openAlerts = 0 }: { status: GameStatus; openAlerts?: number }) {
   switch (status) {
     case 'live':
       return <Pill tone="red"><span className="inline-block h-1.5 w-1.5 rounded-full bg-red-400" aria-hidden />live</Pill>
     case 'processing':
-      return <Pill tone="yellow"><Spinner />processing</Pill>
+      return <Pill tone="blue"><Spinner />processing</Pill>
     case 'queued':
-      return <Pill tone="yellow">queued</Pill>
+      return <Pill tone="blue">queued</Pill>
     case 'no-video':
       return <Pill tone="red">no video</Pill>
     default:
-      return openAlerts > 0 ? <Pill tone="yellow">{openAlerts} open alert{openAlerts === 1 ? '' : 's'}</Pill> : <Pill tone="green">analyzed</Pill>
+      // Open alerts: none = green, a few = yellow, many = red.
+      return openAlerts === 0 ? <Pill tone="green">no open alerts</Pill>
+        : <Pill tone={openAlerts >= ALERTS_RED ? 'red' : 'yellow'}>{openAlerts} open alert{openAlerts === 1 ? '' : 's'}</Pill>
   }
 }
 

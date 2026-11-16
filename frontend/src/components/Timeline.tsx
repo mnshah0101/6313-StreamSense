@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { worstSev, type Frame, type Feedback } from '../data/types'
+import { worstSev, type Alert, type Frame, type Feedback, type Stretch } from '../data/types'
 import { FRAME_INTERVAL_SEC, clockLabel } from '../data/format'
 
 interface Props {
@@ -9,6 +9,38 @@ interface Props {
   onSelect: (i: number) => void
   feedback: Feedback[]
   threshold: number
+  /** Alerts for this game, drawn as grouped chunks in a lane under the bars. */
+  alerts?: Alert[]
+  stretches?: Stretch[]
+}
+
+// Alerts closer than this many sampled frames (~1 min at 5 s) are drawn as one chunk.
+const GROUP_GAP = 12
+
+interface AlertGroup { start: number; end: number; count: number; open: number; sev: number; target: number }
+
+function groupAlerts(alerts: Alert[], stretches: Stretch[]): AlertGroup[] {
+  const spans = alerts
+    .map((a) => {
+      const s = stretches.find((st) => a.frameIndex >= st.start && a.frameIndex <= st.end)
+      return { start: s?.start ?? a.frameIndex, end: s?.end ?? a.frameIndex, a, sev: worstSev(a.detections) }
+    })
+    .sort((x, y) => x.start - y.start)
+  const out: AlertGroup[] = []
+  let best = -1
+  for (const s of spans) {
+    const g = out[out.length - 1]
+    if (g && s.start - g.end <= GROUP_GAP) {
+      g.end = Math.max(g.end, s.end)
+      g.count++
+      g.open += Number(s.a.status === 'open')
+      if (s.sev > best) { best = s.sev; g.sev = s.sev; g.target = s.a.frameIndex }
+    } else {
+      best = s.sev
+      out.push({ start: s.start, end: s.end, count: 1, open: Number(s.a.status === 'open'), sev: s.sev, target: s.a.frameIndex })
+    }
+  }
+  return out
 }
 
 const H = 48
@@ -26,7 +58,7 @@ function loadZoom(): number {
   }
 }
 
-export default function Timeline({ frames, visible, selected, onSelect, feedback, threshold }: Props) {
+export default function Timeline({ frames, visible, selected, onSelect, feedback, threshold, alerts = [], stretches = [] }: Props) {
   const n = frames.length
   const [hover, setHover] = useState<number | null>(null)
   const [zoom, setZoom] = useState(loadZoom)
@@ -113,6 +145,7 @@ export default function Timeline({ frames, visible, selected, onSelect, feedback
     for (let t = 0; t < totalSec; t += step) out.push(t)
     return out
   }, [innerW, totalSec])
+  const groups = useMemo(() => groupAlerts(alerts, stretches), [alerts, stretches])
   const missed = feedback.filter((f) => f.kind === 'missed')
   const stretch = selected !== null ? frames[selected]?.stretch : undefined
   const btn = 'h-6 min-w-6 rounded-md border border-border-subtle px-1.5 text-xs text-text-secondary hover:bg-bg-card-hover disabled:opacity-40'
@@ -192,6 +225,30 @@ export default function Timeline({ frames, visible, selected, onSelect, feedback
           {hover !== null && (
             <div className="pointer-events-none absolute -top-7 whitespace-nowrap rounded-md border border-border-subtle bg-bg-primary px-2 py-0.5 text-[11px] text-text-primary" style={{ left: `${((hover + 0.5) / n) * 100}%`, transform: 'translateX(-50%)' }}>
               {clockLabel(frames[hover].tSec)}
+            </div>
+          )}
+          {groups.length > 0 && (
+            <div className="relative mt-1.5 h-5" role="list" aria-label="Alert groups">
+              {groups.map((g) => {
+                const reviewed = g.open === 0
+                return (
+                  <button
+                    key={g.start}
+                    role="listitem"
+                    onClick={() => onSelect(g.target)}
+                    title={`${g.count} alert${g.count === 1 ? '' : 's'} · ${clockLabel(g.start * FRAME_INTERVAL_SEC)}–${clockLabel((g.end + 1) * FRAME_INTERVAL_SEC)}${reviewed ? ' · reviewed' : ` · ${g.open} open`} · click for the worst`}
+                    className="absolute top-0 flex h-5 items-center justify-center overflow-hidden rounded-sm text-[10px] font-semibold text-black/80 outline-none transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:ring-accent"
+                    style={{
+                      left: `${(g.start / n) * 100}%`,
+                      width: `max(6px, ${((g.end - g.start + 1) / n) * 100}%)`,
+                      background: `var(--color-sev-${Math.min(5, Math.max(1, g.sev || 1))})`,
+                      opacity: reviewed ? 0.35 : 0.85,
+                    }}
+                  >
+                    {g.count > 1 ? g.count : ''}
+                  </button>
+                )
+              })}
             </div>
           )}
           <div className="relative mt-1 h-4 text-[10px] text-text-muted">

@@ -237,7 +237,7 @@ export default function MatchAnalysis() {
                 <span className="text-[11px] tabular-nums text-text-secondary">{Math.round(progress * 100)}%</span>
               </div>
             )}
-            <Timeline frames={frames} visible={visible} selected={selected} onSelect={select} feedback={gameFeedback} threshold={threshold} />
+            <Timeline frames={frames} visible={visible} selected={selected} onSelect={select} feedback={gameFeedback} threshold={threshold} alerts={gameAlerts} stretches={game.stretches} />
           </>
         )}
       </section>}
@@ -356,7 +356,6 @@ function FrameDetail({ frame, game, isImage, canReview, alertId, alertRaisedAt, 
   const region = stretch?.region || hm?.locationText || frame.detections.find((d) => d.locationText)?.locationText || null
   const t = frame.tSec
   const hasDetections = frame.detections.length > 0
-  const heatNote = heatAvailable || !hasDetections ? null : hm?.status === 'failed' ? 'Heat map failed' : 'No heat map for this defect'
   const verdict = existing.find((e) => e.kind === 'correct' || e.kind === 'incorrect')
   const missedHere = existing.filter((e) => e.kind === 'missed')
 
@@ -410,12 +409,13 @@ function FrameDetail({ frame, game, isImage, canReview, alertId, alertRaisedAt, 
               <div className="absolute bottom-2 right-2 rounded-md bg-bg-primary/85 px-1.5 py-0.5 text-[10px] text-ground-truth">{mark ? 'Region marked' : 'Click to mark region'}</div>
             )}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <span title={heatAvailable ? `${hm?.method ? `${hm.method.replace(/_/g, ' ')} · ` : ''}not validated against location labels` : undefined}>
-              <Toggle on={heat && heatAvailable} onChange={setHeat} label="Heat Map" />
-            </span>
-            {heatNote && <span className="text-[11px] text-text-muted">{heatNote}</span>}
-          </div>
+          {heatAvailable && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <span title={`${hm?.method ? `${hm.method.replace(/_/g, ' ')} · ` : ''}not validated against location labels`}>
+                <Toggle on={heat} onChange={setHeat} label="Heat Map" />
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Detail + review */}
