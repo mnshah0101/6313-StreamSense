@@ -140,6 +140,7 @@ WantedBy=multi-user.target
 EOF
 cat > /etc/caddy/Caddyfile <<'EOF'
 {host} {{
+  encode zstd gzip
   reverse_proxy 127.0.0.1:8000
 }}
 EOF

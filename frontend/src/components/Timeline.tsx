@@ -183,6 +183,12 @@ export default function Timeline({ frames, visible, selected, onSelect, feedback
             ))}
             {visible < n && <rect x={visible} y={0} width={n - visible} height={H} fill="var(--color-bg-primary)" opacity={0.5} />}
           </svg>
+          {selected !== null && selected < n && (
+            // Always-visible marker for the selected frame (a bar can be < 1 px wide at "fit").
+            <div className="pointer-events-none absolute top-0 h-[88px] w-[3px] -translate-x-1/2 rounded-sm bg-accent" style={{ left: `${((selected + 0.5) / n) * 100}%` }} aria-hidden>
+              <div className="absolute -top-1.5 left-1/2 h-0 w-0 -translate-x-1/2 border-x-[5px] border-t-[6px] border-x-transparent border-t-accent" />
+            </div>
+          )}
           {hover !== null && (
             <div className="pointer-events-none absolute -top-7 whitespace-nowrap rounded-md border border-border-subtle bg-bg-primary px-2 py-0.5 text-[11px] text-text-primary" style={{ left: `${((hover + 0.5) / n) * 100}%`, transform: 'translateX(-50%)' }}>
               {clockLabel(frames[hover].tSec)}

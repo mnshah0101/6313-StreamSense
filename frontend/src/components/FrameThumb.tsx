@@ -18,10 +18,12 @@ interface Props {
   label?: string
   cornerLabel?: string
   className?: string
+  /** Load immediately (the main frame view); thumbnails load only when scrolled into view. */
+  eager?: boolean
 }
 
 /** A sampled frame from the API, with optional heat-map overlay and reviewer marker. */
-export default function FrameThumb({ imageUrl, overlayUrl, heat, showHeat, pending, marker, onClickFrame, label, cornerLabel, className = '' }: Props) {
+export default function FrameThumb({ imageUrl, overlayUrl, heat, showHeat, pending, marker, onClickFrame, label, cornerLabel, className = '', eager = false }: Props) {
   const [broken, setBroken] = useState<string | null>(null)
   const gid = useId()
   const src = mediaUrl(imageUrl)
@@ -37,14 +39,14 @@ export default function FrameThumb({ imageUrl, overlayUrl, heat, showHeat, pendi
   return (
     <div className={`relative h-full w-full bg-bg-primary ${className}`}>
       {photo ? (
-        <img src={photo} alt="" onError={() => setBroken(photo)} className="absolute inset-0 h-full w-full object-fill" draggable={false} />
+        <img src={photo} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setBroken(photo)} className="absolute inset-0 h-full w-full object-fill" draggable={false} />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center gap-2 text-[10px] uppercase tracking-wide text-text-muted">
           {pending ? <><Spinner />processing</> : 'no image'}
         </div>
       )}
       {photo && overlay && showHeat && (
-        <img src={overlay} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-fill" draggable={false} />
+        <img src={overlay} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" className="pointer-events-none absolute inset-0 h-full w-full object-fill" draggable={false} />
       )}
       <svg
         viewBox="0 0 320 180"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { FRAME_INTERVAL_SEC, clockLabel, dateLabel, dateTimeLabel, gameTitle, timeLabel, wallClock, jobStatusLine } from '../data/format'
 import { DEFECT_TYPES, jobActive, type Alert, type DefectType, type Frame, type Game, type Job } from '../data/types'
@@ -43,12 +43,24 @@ function useMatchData(id: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  // The store polls GET /jobs/{id} every 1.5 s; each change in progress pulls the new frames.
-  const jobKey = job ? `${job.id}:${job.status}:${job.doneFrames}` : ''
+  // The store polls GET /jobs/{id}; a new job or status change reloads everything, while
+  // progress only fetches the frames after the last one we have (at most every 4 s).
+  const jobKey = job ? `${job.id}:${job.status}` : ''
   useEffect(() => {
     if (jobKey) void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobKey])
+  const lastFetch = useRef(0)
+  useEffect(() => {
+    if (!job || !jobActive(job) || Date.now() - lastFetch.current < 4000) return
+    lastFetch.current = Date.now()
+    const next = apiFrames.length ? apiFrames[apiFrames.length - 1].index + 1 : 0
+    if (job.doneFrames <= next) return
+    api.gameFrames(id, { start: next })
+      .then((more) => { if (more.length) setApiFrames((prev) => [...prev, ...more.filter((f) => f.index >= next)]) })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.doneFrames])
 
   // Live streams: append frames as they arrive.
   usePoll(async () => {
@@ -104,6 +116,12 @@ export default function MatchAnalysis() {
   const act = (p: Promise<unknown>) => { setActionErr(null); p.catch((e) => setActionErr(errorMessage(e))) }
 
   const selected = params.get('frame') !== null ? Number(params.get('frame')) : null
+  const fromAlert = params.get('alert')
+  const detailRef = useRef<HTMLDivElement>(null)
+  const haveSelected = selected !== null && frames[selected] !== undefined && !frames[selected].pending
+  useEffect(() => {
+    if (fromAlert && haveSelected) detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [fromAlert, selected, haveSelected])
   const select = (i: number | null) => {
     const next = new URLSearchParams(params)
     if (i === null) next.delete('frame'); else next.set('frame', String(i))
@@ -225,6 +243,7 @@ export default function MatchAnalysis() {
       </section>}
 
       {/* Frame detail */}
+      <div ref={detailRef} className="scroll-mt-16" />
       {frame && (
         <FrameDetail
           key={frame.index}
@@ -378,6 +397,7 @@ function FrameDetail({ frame, game, isImage, canReview, alertId, alertRaisedAt, 
         <div className="lg:col-span-3">
           <div className="relative aspect-video overflow-hidden rounded-lg border border-border-subtle bg-bg-primary">
             <FrameThumb
+              eager
               heat={heatShape}
               showHeat={heat && heatAvailable}
               imageUrl={frame.imageUrl}
