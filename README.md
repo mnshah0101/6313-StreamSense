@@ -9,6 +9,10 @@ the GPU model samples one frame every 5 seconds, and the timeline fills in as re
 which frames have an issue, what kind, how severe, where in the frame (heat map), plus alerts to
 confirm or dismiss and feedback that can improve the next model.
 
+## System design
+
+![StreamSense system design](system-design.svg)
+
 ## What is in this repository
 
 | Folder | What it is |

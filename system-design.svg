@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" font-family="Inter, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d6453d"/>
+    </marker>
+    <style>
+      .t  { font-size: 19px; font-weight: 700; fill: #0f172a; }
+      .s  { font-size: 14px; fill: #334155; }
+      .m  { font-size: 13px; fill: #64748b; }
+      .lb { font-size: 13px; fill: #334155; font-weight: 600; }
+      .zone { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; fill: #64748b; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; }
+      .ln  { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#a); }
+      .rl  { stroke: #d6453d; stroke-width: 2.5; fill: none; marker-end: url(#r); }
+      .dash { stroke-dasharray: 7 6; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="40" y="52" font-size="30" font-weight="800" fill="#0f172a">StreamSense — system design</text>
+  <text x="40" y="80" class="s">Detects broadcast defects (black frames, freezes, obstructions, bad framing…) in sports video with a fine-tuned vision-language model.</text>
+
+  <!-- Zones -->
+  <rect x="30" y="110" width="270" height="560" rx="14" fill="#eef2f7"/>
+  <text x="50" y="138" class="zone">USERS</text>
+  <rect x="330" y="110" width="560" height="560" rx="14" fill="#eef2f7"/>
+  <text x="350" y="138" class="zone">CLOUD (ALWAYS ON)</text>
+  <rect x="920" y="110" width="650" height="560" rx="14" fill="#eef2f7"/>
+  <text x="940" y="138" class="zone">GPU WORKERS (ANY NUMBER, SAME QUEUE)</text>
+
+  <!-- Users -->
+  <rect x="55" y="170" width="220" height="130" rx="12" class="box"/>
+  <text x="75" y="203" class="t">Browser</text>
+  <text x="75" y="230" class="s">Reviewers &amp; admins</text>
+  <text x="75" y="252" class="m">upload, timeline, alerts,</text>
+  <text x="75" y="272" class="m">heat maps, feedback, status</text>
+
+  <rect x="55" y="470" width="220" height="150" rx="12" class="box"/>
+  <text x="75" y="503" class="t">PACE web app</text>
+  <text x="75" y="530" class="s">Same UI, on Georgia</text>
+  <text x="75" y="550" class="s">Tech's cluster</text>
+  <text x="75" y="575" class="m">for long, full-match</text>
+  <text x="75" y="595" class="m">videos (SSH tunnel)</text>
+
+  <!-- Cloud -->
+  <rect x="355" y="170" width="250" height="130" rx="12" class="box"/>
+  <text x="375" y="203" class="t">Vercel</text>
+  <text x="375" y="230" class="s">React 19 + Vite web app</text>
+  <text x="375" y="252" class="m">/api/* forwarded to the API</text>
+  <text x="375" y="272" class="m">(same origin → session cookies)</text>
+
+  <rect x="355" y="340" width="250" height="180" rx="12" class="box"/>
+  <text x="375" y="373" class="t">API · AWS EC2</text>
+  <text x="375" y="400" class="s">FastAPI behind Caddy (HTTPS)</text>
+  <text x="375" y="425" class="m">• users, roles, sessions</text>
+  <text x="375" y="445" class="m">• games, jobs, alerts, review</text>
+  <text x="375" y="465" class="m">• presigned S3 uploads/links</text>
+  <text x="375" y="485" class="m">• status &amp; GPU wake-up</text>
+  <text x="375" y="505" class="m">no model, no GPU</text>
+
+  <rect x="640" y="170" width="225" height="210" rx="12" class="box"/>
+  <text x="660" y="203" class="t">Neon Postgres</text>
+  <text x="660" y="228" class="s">Single source of truth</text>
+  <text x="660" y="253" class="m">• job queue (leases, retries)</text>
+  <text x="660" y="273" class="m">• games, frames, alerts</text>
+  <text x="660" y="293" class="m">• localizations</text>
+  <text x="660" y="313" class="m">• model &amp; threshold versions</text>
+  <text x="660" y="333" class="m">• feedback, users</text>
+  <text x="660" y="353" class="m">• worker heartbeats</text>
+
+  <rect x="640" y="420" width="225" height="200" rx="12" class="box"/>
+  <text x="660" y="453" class="t">Amazon S3</text>
+  <text x="660" y="478" class="s">All media, private</text>
+  <text x="660" y="503" class="m">• source videos (≤ 20 GB)</text>
+  <text x="660" y="523" class="m">• sampled frames, thumbnails</text>
+  <text x="660" y="543" class="m">• posters, heat maps</text>
+  <text x="660" y="563" class="m">• model checkpoint</text>
+  <text x="660" y="588" class="m">browser ⇄ S3 direct,</text>
+  <text x="660" y="606" class="m">presigned URLs only</text>
+
+  <!-- Workers -->
+  <rect x="945" y="170" width="300" height="220" rx="12" class="box"/>
+  <text x="965" y="203" class="t">PACE GPU worker</text>
+  <text x="965" y="228" class="s">Slurm job · H100 / H200 /</text>
+  <text x="965" y="248" class="s">RTX PRO 6000 Blackwell</text>
+  <text x="965" y="278" class="m">Runs the PACE web app's API</text>
+  <text x="965" y="298" class="m">plus an embedded worker;</text>
+  <text x="965" y="318" class="m">serves cloud uploads too</text>
+  <text x="965" y="348" class="m">8 h jobs, restarted with</text>
+  <text x="965" y="368" class="m">scripts/pace_up.sh</text>
+
+  <rect x="945" y="430" width="300" height="200" rx="12" class="box" stroke-dasharray="7 6"/>
+  <text x="965" y="463" class="t">Cloud GPU worker</text>
+  <text x="965" y="488" class="s">EC2 g6.xlarge · NVIDIA L4</text>
+  <text x="965" y="518" class="m">Started by the API when a job</text>
+  <text x="965" y="538" class="m">is queued and no worker is</text>
+  <text x="965" y="558" class="m">online; stops after 15 idle min</text>
+  <text x="965" y="588" class="m">dashed = waiting on AWS</text>
+  <text x="965" y="608" class="m">GPU quota</text>
+
+  <rect x="1280" y="170" width="265" height="460" rx="12" fill="#fff5f4" stroke="#f0b4ae" stroke-width="1.5"/>
+  <text x="1300" y="203" class="t">Inference worker</text>
+  <text x="1300" y="228" class="s">Qwen3-VL-4B + LoRA</text>
+  <text x="1300" y="248" class="m">(seed-2 checkpoint, val AP 0.90)</text>
+  <g class="s">
+    <text x="1300" y="288">1  Claim a job (lease)</text>
+    <text x="1300" y="320">2  Probe &amp; validate video</text>
+    <text x="1300" y="352">3  Sample a frame every 5 s</text>
+    <text x="1300" y="384">4  Score every frame</text>
+    <text x="1320" y="404" class="m">first-token P(defect), batched</text>
+    <text x="1300" y="436">5  Describe flagged frames</text>
+    <text x="1320" y="456" class="m">defect classes + explanation</text>
+    <text x="1300" y="488">6  Localize (occlusion</text>
+    <text x="1320" y="508">heat maps)</text>
+    <text x="1300" y="540">7  Raise / update alerts</text>
+    <text x="1300" y="572">8  Heartbeat: fps, speed,</text>
+    <text x="1320" y="592">latency, queue wait</text>
+  </g>
+
+  <!-- Arrows: users -> cloud -->
+  <path d="M275,225 L355,225" class="ln"/>
+  <text x="282" y="214" class="lb">HTTPS</text>
+  <path d="M480,300 L480,340" class="ln"/>
+  <text x="488" y="326" class="lb">/api</text>
+  <!-- browser direct to S3 -->
+  <path d="M240,300 L240,320 L315,320 L315,645 L752,645 L752,622" class="rl"/>
+  <text x="345" y="590" class="lb" fill="#d6453d">direct multipart upload</text>
+  <text x="345" y="608" class="lb" fill="#d6453d">&amp; media links (presigned)</text>
+  <!-- API -> Neon / S3 -->
+  <path d="M605,360 L640,360" class="ln"/>
+  <path d="M605,470 L640,470" class="ln"/>
+  <!-- workers -> Neon / S3 -->
+  <text x="940" y="157" class="m">each worker: jobs &amp; results ⇄ Postgres, media ⇄ S3</text>
+  <path d="M945,260 L865,260" class="ln"/>
+  <text x="872" y="248" class="lb">jobs</text>
+  <path d="M945,560 L865,560" class="ln"/>
+  <text x="872" y="548" class="lb">media</text>
+  <!-- API wakes cloud GPU -->
+  <path d="M560,520 L560,690 L1095,690 L1095,632" class="ln dash"/>
+  <text x="700" y="684" class="lb">wake the cloud GPU (EC2 StartInstances)</text>
+  <!-- PACE web app -> PACE worker -->
+  <path d="M165,620 L165,735 L1262,735 L1262,360 L1247,360" class="ln"/>
+  <text x="330" y="728" class="lb">PACE web app → its own API on the PACE GPU node (SSH tunnel)</text>
+  <!-- workers -> inference -->
+  <path d="M1245,280 L1280,280" class="ln"/>
+  <path d="M1245,530 L1280,530" class="ln dash"/>
+
+  <!-- Bottom: training + versioning -->
+  <rect x="30" y="760" width="1540" height="210" rx="14" fill="#eef2f7"/>
+  <text x="50" y="788" class="zone">MODEL LIFECYCLE (ml/)</text>
+
+  <g>
+    <rect x="55" y="810" width="250" height="130" rx="12" class="box"/>
+    <text x="75" y="843" class="t">Labeled clips</text>
+    <text x="75" y="868" class="m">PlayOn broadcast frames,</text>
+    <text x="75" y="888" class="m">game-level train / val /</text>
+    <text x="75" y="908" class="m">locked test split</text>
+
+    <rect x="355" y="810" width="290" height="130" rx="12" class="box"/>
+    <text x="375" y="843" class="t">LoRA fine-tuning</text>
+    <text x="375" y="868" class="m">Hydra configs, PACE GPUs,</text>
+    <text x="375" y="888" class="m">several seeds; pick by val AP,</text>
+    <text x="375" y="908" class="m">locked test run once (AP 0.887)</text>
+
+    <rect x="695" y="810" width="250" height="130" rx="12" class="box"/>
+    <text x="715" y="843" class="t">Checkpoint</text>
+    <text x="715" y="868" class="m">adapter + run record</text>
+    <text x="715" y="888" class="m">→ S3; registered as a</text>
+    <text x="715" y="908" class="m">versioned ModelVersion</text>
+
+    <rect x="995" y="810" width="250" height="130" rx="12" class="box"/>
+    <text x="1015" y="843" class="t">Serving</text>
+    <text x="1015" y="868" class="m">workers load it; every frame</text>
+    <text x="1015" y="888" class="m">and alert records the model</text>
+    <text x="1015" y="908" class="m">and threshold version used</text>
+
+    <rect x="1295" y="810" width="250" height="130" rx="12" class="box"/>
+    <text x="1315" y="843" class="t">Review &amp; feedback</text>
+    <text x="1315" y="868" class="m">reviewers confirm or reject</text>
+    <text x="1315" y="888" class="m">alerts → labels for the next</text>
+    <text x="1315" y="908" class="m">fine-tune request</text>
+  </g>
+  <path d="M305,875 L355,875" class="ln"/>
+  <path d="M645,875 L695,875" class="ln"/>
+  <path d="M945,875 L995,875" class="ln"/>
+  <path d="M1245,875 L1295,875" class="ln"/>
+  <path d="M1420,940 L1420,957 L180,957 L180,942" class="ln dash"/>
+</svg>
