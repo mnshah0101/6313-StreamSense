@@ -230,7 +230,7 @@ class Worker:
                 if not self._still_mine(job_id):
                     log.info("job %s cancelled or lease lost; stopping", job_id)
                     return
-                self._save_batch(job_id, game_id, batch, mv.id, threshold, localize_all)
+                self._save_batch(job_id, game_id, batch, mv.id, threshold, localize_all, total)
         self._stage(job_id, "finishing", "Finishing up", None, force=True)
         with dbm.session() as db:  # the decoder is the truth if the container over-reported
             job = db.get(Job, job_id)
@@ -299,6 +299,7 @@ class Worker:
         model_id: str,
         threshold: ThresholdVersion,
         localize_all: bool,
+        total: int = 2,
     ) -> None:
         owner = f"games/{game_id}/runs/{job_id}"
         writes: list = []
@@ -351,7 +352,10 @@ class Worker:
                 w.result()
             db.commit()
             game = db.get(Game, game_id)
-            new_alerts = raise_alerts(db, game, threshold, since_index=batch[0][0])
+            min_frames = 1 if total <= 1 else self.s.min_alert_frames  # an image is one frame
+            new_alerts = raise_alerts(
+                db, game, threshold, since_index=batch[0][0], min_frames=min_frames
+            )
             if not localize_all:
                 # Every alert gets its heat map: localize the frame it points to (read back
                 # from the store; the worst frame may be from an earlier batch).

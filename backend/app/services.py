@@ -127,8 +127,17 @@ def wall_clock(game: Game, t_sec: float) -> str:
     return f"{h12}:{m:02d} {'PM' if h24 >= 12 else 'AM'}"
 
 
+def longest_run(indices: list[int]) -> int:
+    """Length of the longest run of consecutive integers in a sorted list."""
+    best = cur = 0
+    for k, i in enumerate(indices):
+        cur = cur + 1 if k and i == indices[k - 1] + 1 else 1
+        best = max(best, cur)
+    return best
+
+
 def raise_alerts(
-    db: Session, game: Game, threshold: ThresholdVersion, since_index: int = 0
+    db: Session, game: Game, threshold: ThresholdVersion, since_index: int = 0, min_frames: int = 1
 ) -> list[Alert]:
     """One alert per stretch whose worst frame clears the threshold; returns alerts that are new
     or now point at a different frame (so the caller can localize that frame).
@@ -149,6 +158,8 @@ def raise_alerts(
     for s in stretches(frames, current_overlays(db, [f.id for f in frames if f.quality_issue])):
         if s.end < since_index:
             continue  # finished before this batch: already handled
+        if longest_run(s.frames) < min_frames:
+            continue  # not persistent enough (yet): stays on the timeline, no alert
         worst = next(f for f in frames if f.id == s.worst_frame_id)
         # Frames are flagged with the threshold's issue-score cutoff; severity gates alerts.
         if max_severity(worst.defects) < threshold.severity_cutoff:
@@ -219,3 +230,29 @@ def wake_gpu(db: Session, settings: Settings) -> bool:
 
         logging.getLogger("streamsense.api").warning("could not start GPU instance", exc_info=True)
     return False
+
+
+def recompute_alerts(
+    db: Session, game: Game, threshold: ThresholdVersion, min_frames: int
+) -> tuple[int, int]:
+    """Re-apply the alert rules to a game's stored frames (no re-inference). Adds alerts that
+    now qualify and deletes open alerts that no longer do; reviewed alerts are kept as history.
+    Returns (added, removed)."""
+    before = set(db.scalars(select(Alert.id).where(Alert.game_id == game.id)))
+    raise_alerts(db, game, threshold, since_index=0, min_frames=min_frames)
+    frames = game_frames(db, game.id)
+    keep = {
+        f"alr-{game.id}-{s.start}"
+        for s in stretches(frames)
+        if longest_run(s.frames) >= min_frames
+        and max_severity(next(f for f in frames if f.id == s.worst_frame_id).defects)
+        >= threshold.severity_cutoff
+    }
+    removed = 0
+    for a in db.scalars(select(Alert).where(Alert.game_id == game.id, Alert.status == "open")):
+        if a.id not in keep:
+            db.delete(a)
+            removed += 1
+    db.commit()
+    after = set(db.scalars(select(Alert.id).where(Alert.game_id == game.id)))
+    return len(after - before), removed

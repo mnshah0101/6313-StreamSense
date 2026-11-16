@@ -10,7 +10,7 @@ from sqlalchemy import select, update
 
 from app import db as dbm
 from app.inference.dummy import DummyBackend
-from app.models import Frame, Game, Job
+from app.models import Alert, Frame, Game, Job
 from app.worker import Worker
 
 from .conftest import analyze, fetch_media, jpeg, make_settings, mp4
@@ -653,3 +653,37 @@ def test_worker_module_entrypoint_runs_after_helpers():
     """`python -m app.worker` executes top to bottom: main() must come after every helper."""
     src = (Path(__file__).resolve().parents[1] / "app" / "worker.py").read_text()
     assert src.rstrip().endswith('if __name__ == "__main__":\n    main()')
+
+
+def test_alerts_need_consecutive_flagged_frames(client):
+    """One flagged sample never alerts a video; two in a row do (also across batches)."""
+    from app.services import current_threshold, longest_run, raise_alerts, recompute_alerts
+
+    assert [longest_run(x) for x in ([], [3], [1, 3, 5], [1, 2, 4, 5, 6])] == [0, 1, 1, 3]
+    body = {"home": "A", "away": "B", "sport": "Soccer", "date": "2026-11-15"}
+    gid = client.post("/games", json=body).json()["id"]
+    bad = [{"type": "Blur", "severity": 4}]
+
+    def frame(i, flagged):
+        return Frame(game_id=gid, job_id=None, index=i, timestamp_ms=i * 5000, issue_score=0.9 if flagged else 0.1,
+                     quality_issue=flagged, defects=bad if flagged else [])  # fmt: skip
+
+    with dbm.session() as db:
+        game, th = db.get(Game, gid), current_threshold(db, client.app_state.settings)
+        db.add_all(
+            [frame(0, True), frame(1, False), frame(2, False), frame(3, False), frame(4, True)]
+        )
+        db.commit()
+        assert raise_alerts(db, game, th, since_index=0, min_frames=2) == []  # two lone hits
+        db.add(frame(5, True))  # the next batch makes frame 4's run persistent
+        db.commit()
+        (a,) = raise_alerts(db, game, th, since_index=5, min_frames=2)
+        assert a.id == f"alr-{gid}-4"
+        # An old single-frame alert (raised under min_frames=1) is removed when recomputed.
+        raise_alerts(db, game, th, since_index=0, min_frames=1)
+        assert {x.id for x in db.scalars(select(Alert).where(Alert.game_id == gid))} == {
+            f"alr-{gid}-0", f"alr-{gid}-4"}  # fmt: skip
+        assert recompute_alerts(db, game, th, min_frames=2) == (0, 1)
+        assert [x.id for x in db.scalars(select(Alert).where(Alert.game_id == gid))] == [
+            f"alr-{gid}-4"
+        ]

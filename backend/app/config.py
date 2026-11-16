@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     multipart_part_mb: int = 64  # direct-to-S3 upload part size (10 GB = 160 parts)
 
     default_alert_threshold: int = 2
+    # A video alert needs this many consecutive flagged samples (1 sample = frame_interval_sec),
+    # so one-off misfires stay on the timeline without paging anyone. Images always use 1.
+    min_alert_frames: int = 2
     min_labels_for_finetune: int = 50
 
     # Sign-in. "session": accounts + HttpOnly session cookie (default). "off": everyone is a
