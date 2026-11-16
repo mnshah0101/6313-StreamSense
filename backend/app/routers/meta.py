@@ -12,7 +12,17 @@ from app.config import Settings
 from app.db import get_db
 from app.defects import CREW_TO_DEFECT, DEFECT_TYPES
 from app.media import THUMB_CACHE, MediaStore
-from app.models import BenchRun, Frame, Game, Job, Localization, ModelRun, ThresholdVersion
+from app.models import (
+    BenchRun,
+    Frame,
+    Game,
+    Job,
+    Localization,
+    ModelRun,
+    ModelVersion,
+    ThresholdVersion,
+    WorkerState,
+)
 from app.schemas import (
     BenchRunOut,
     ModelInfo,
@@ -43,19 +53,38 @@ def health(request: Request):
 
 
 @router.get("/model", response_model=ModelInfo, dependencies=[Depends(viewer)])
-def model_info(request: Request, s: Settings = Depends(settings_dep)):
+def model_info(
+    request: Request, s: Settings = Depends(settings_dep), db: Session = Depends(get_db)
+):
     b = request.app.state.backend
+    w = serving_worker(db, s)  # an API without its own worker reports what the workers serve
     return ModelInfo(
         direct_upload=s.media_backend == "s3",
         max_upload_mb=s.max_upload_mb,
         max_video_sec=s.max_video_sec,
-        backend=b.name,
-        model_id=b.model_version,
-        device=b.device,
-        hardware=request.app.state.hardware,
-        loaded=b.loaded,
+        backend="worker" if w else b.name,
+        model_id=w.model_id if w else b.model_version,
+        device="cuda" if w else b.device,
+        hardware=w.hardware if w else request.app.state.hardware,
+        loaded=True if w else b.loaded,
         binary_threshold=s.binary_threshold,
         frame_interval_sec=s.frame_interval_sec,
+    )
+
+
+def serving_worker(db: Session, s: Settings) -> WorkerState | None:
+    """The most recently seen online worker, when this API does not run its own."""
+    if s.embedded_worker:
+        return None
+    from datetime import UTC, datetime, timedelta
+
+    cutoff = datetime.now(UTC) - timedelta(seconds=60)
+    if db.get_bind().dialect.name == "sqlite":
+        cutoff = cutoff.replace(tzinfo=None)
+    return db.scalar(
+        select(WorkerState)
+        .where(WorkerState.last_seen_at >= cutoff, WorkerState.state != "stopped")
+        .order_by(WorkerState.last_seen_at.desc())
     )
 
 
@@ -88,9 +117,12 @@ def publish_threshold(
     prev = current_threshold(db, s)
     if body.calibration_run_id is not None and db.get(ModelRun, body.calibration_run_id) is None:
         raise error(422, "unknown_run", "calibration_run_id does not exist")
-    mv = ensure_model_version(db, request.app.state.backend)
+    w = serving_worker(db, request.app.state.settings)
+    model_id = (
+        w.model_id if w and w.model_id else ensure_model_version(db, request.app.state.backend).id
+    )
     t = ThresholdVersion(
-        model_id=mv.id,
+        model_id=model_id if db.get(ModelVersion, model_id) else None,
         calibration_run_id=body.calibration_run_id,
         severity_cutoff=body.alert_threshold,
         issue_score_cutoff=body.issue_score_cutoff

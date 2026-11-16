@@ -23,7 +23,47 @@ def _isolated_env(monkeypatch):
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
 
 
+# STREAMSENSE_TEST_PG_URL=postgresql://... runs the suite on Postgres: each test gets its own
+# schema (search_path), dropped afterwards. Default: a fresh SQLite file per test.
+_PG = __import__("os").environ.get("STREAMSENSE_TEST_PG_URL")
+
+
+@pytest.fixture(autouse=True)
+def _pg_schema(monkeypatch):
+    if not _PG:
+        yield
+        return
+    import secrets
+
+    from sqlalchemy import create_engine, text
+
+    name = f"t_{secrets.token_hex(6)}"
+    url = Settings(_env_file=None, db_url=_PG).database_url
+    admin = create_engine(url)
+    with admin.begin() as c:
+        c.execute(text(f"CREATE SCHEMA {name}"))
+    sep = "&" if "?" in url else "?"
+    monkeypatch.setattr(
+        "tests.conftest._TEST_DB_URL", f"{url}{sep}options=-csearch_path%3D{name}", raising=False
+    )
+    yield
+    from app import db as dbm
+
+    if dbm._engine is not None:
+        dbm._engine.dispose()
+    with admin.begin() as c:
+        c.execute(text(f"DROP SCHEMA {name} CASCADE"))
+    admin.dispose()
+
+
+_TEST_DB_URL = None
+
+
 def make_settings(tmp: Path, **kw) -> Settings:
+    import tests.conftest as me
+
+    if me._TEST_DB_URL and "db_url" not in kw:
+        kw["db_url"] = me._TEST_DB_URL
     return Settings(
         _env_file=None,  # never the developer's .env
         data_dir=tmp,

@@ -20,7 +20,12 @@ def init_engine(url: str) -> Engine:
     global _engine, _factory
     if _engine is not None:
         _engine.dispose()
-    kwargs = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {}
+    if url.startswith("sqlite"):
+        kwargs = {"connect_args": {"check_same_thread": False}}
+    else:
+        # Managed Postgres (Neon) closes idle connections and may scale to zero: check each
+        # pooled connection before use and recycle them well inside the idle timeout.
+        kwargs = {"pool_pre_ping": True, "pool_recycle": 240, "pool_size": 5, "max_overflow": 5}
     _engine = create_engine(url, **kwargs)
     if url.startswith("sqlite"):
 

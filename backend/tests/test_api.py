@@ -584,3 +584,56 @@ def test_status_counts_failures(client, worker):
         w.run_once()
     sm = client.get("/status").json()["summary"]
     assert sm["jobsFailed"] == 1 and sm["successRate"] == 0.0
+
+
+# ---- cloud GPU on demand -----------------------------------------------------------------
+
+
+def test_model_info_reports_the_online_worker(client, worker):
+    assert client.get("/model").json()["backend"] == "dummy"  # no worker online yet
+    worker._beat("idle", force=True)
+    m = client.get("/model").json()
+    assert m["backend"] == "worker" and m["hardware"] == "test-cpu" and m["modelId"] == "dummy@0.1"
+
+
+def test_wake_gpu_only_when_no_worker_online(client, worker, monkeypatch):
+    import sys
+    import types
+
+    from app.services import wake_gpu
+
+    calls = []
+
+    class FakeEC2:
+        def describe_instances(self, InstanceIds):
+            return {"Reservations": [{"Instances": [{"State": {"Name": "stopped"}}]}]}
+
+        def start_instances(self, InstanceIds):
+            calls.append(InstanceIds)
+
+    monkeypatch.setitem(
+        sys.modules, "boto3", types.SimpleNamespace(client=lambda *a, **k: FakeEC2())
+    )
+    s = worker.s.model_copy(update={"gpu_instance_id": "i-123"})
+    with dbm.session() as db:
+        assert wake_gpu(db, s) is True and calls == [["i-123"]]
+    worker._beat("idle", force=True)
+    with dbm.session() as db:
+        assert wake_gpu(db, s) is False and len(calls) == 1  # a worker is online
+        assert wake_gpu(db, worker.s) is False  # not configured
+
+
+def test_idle_worker_stops_its_machine(client, worker, tmp_path):
+    import threading
+
+    marker = tmp_path / "stopped"
+    s = worker.s.model_copy(update={"idle_shutdown_sec": 0, "idle_shutdown_cmd": f"touch {marker}"})
+    w = Worker(s, DummyBackend(), worker.store, "idle-w")
+    t = threading.Thread(target=w.run_forever, daemon=True)
+    t.start()
+    t.join(timeout=10)
+    assert marker.exists() and not t.is_alive()
+    from app.models import WorkerState
+
+    with dbm.session() as db:
+        assert db.get(WorkerState, "idle-w").state == "stopped"

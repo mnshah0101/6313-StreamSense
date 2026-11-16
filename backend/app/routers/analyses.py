@@ -13,7 +13,7 @@ from app.db import get_db
 from app.media import POSTER_SIZE, MediaStore, TooLarge, receive
 from app.models import Game, Job, Upload
 from app.schemas import AnalysisOut, UploadComplete, UploadCreate, UploadOut, UploadPart
-from app.services import current_threshold
+from app.services import current_threshold, wake_gpu
 from app.video import MediaError, frame_count, poster, probe
 
 from .common import current_user, error, game_out, job_out, settings_dep, store_dep
@@ -88,6 +88,7 @@ def create_analysis(
     db.flush()
     db.add(job)
     db.commit()
+    wake_gpu(db, s)
     return AnalysisOut(game=game_out(db, game, s), job=job_out(job, db))
 
 
@@ -191,6 +192,7 @@ def complete_upload(
     game.status = "queued"
     up.status = "completed"
     db.commit()
+    wake_gpu(db, s)
     return AnalysisOut(game=game_out(db, game, s), job=job_out(job, db))
 
 

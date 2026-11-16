@@ -187,3 +187,35 @@ def run_start(db: Session, game_id: str, index: int, max_gap: int = 1) -> int:
             break
         start = i
     return start
+
+
+def wake_gpu(db: Session, settings: Settings) -> bool:
+    """Start the on-demand cloud GPU when work is queued and no worker is online. Best effort:
+    a failure here never fails the request (PACE or a later start picks the job up)."""
+    if not settings.gpu_instance_id:
+        return False
+    from datetime import UTC, datetime, timedelta
+
+    from app.models import WorkerState
+
+    cutoff = datetime.now(UTC) - timedelta(seconds=60)
+    if db.get_bind().dialect.name == "sqlite":
+        cutoff = cutoff.replace(tzinfo=None)
+    online = db.scalar(select(WorkerState.id).where(
+        WorkerState.last_seen_at >= cutoff, WorkerState.state != "stopped").limit(1))  # fmt: skip
+    if online:
+        return False
+    try:
+        import boto3
+
+        ec2 = boto3.client("ec2", region_name=settings.gpu_region)
+        state = ec2.describe_instances(InstanceIds=[settings.gpu_instance_id])[
+            "Reservations"][0]["Instances"][0]["State"]["Name"]  # fmt: skip
+        if state == "stopped":
+            ec2.start_instances(InstanceIds=[settings.gpu_instance_id])
+            return True
+    except Exception:  # noqa: BLE001
+        import logging
+
+        logging.getLogger("streamsense.api").warning("could not start GPU instance", exc_info=True)
+    return False

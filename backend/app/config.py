@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     lease_sec: int = 120  # renewed after every batch; an expired lease re-queues the job
     poll_sec: float = 1.0
     max_attempts: int = 3
+    # Cloud GPU on demand: the API starts this EC2 instance when a job is queued and no worker
+    # has checked in for a minute; the worker there stops its machine after idle_shutdown_sec.
+    gpu_instance_id: str | None = None
+    gpu_region: str = "us-east-2"
+    idle_shutdown_sec: int | None = None
+    idle_shutdown_cmd: str = "sudo /usr/sbin/shutdown -h now"
     localize: bool = True  # heat maps (occlusion) for spatial defects
     # Videos up to this many sampled frames (5 min) get a heat map on every flagged spatial
     # frame; longer ones only on the frame each alert points to.
@@ -87,7 +93,12 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        return self.db_url or f"sqlite:///{(self.data_dir / 'streamsense.db').resolve()}"
+        url = self.db_url or f"sqlite:///{(self.data_dir / 'streamsense.db').resolve()}"
+        # Provider URLs (Neon, RDS) say postgresql://; use the psycopg 3 driver.
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url[len(prefix) :]
+        return url
 
     @property
     def media_dir(self) -> Path:

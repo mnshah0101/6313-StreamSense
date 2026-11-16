@@ -11,7 +11,7 @@ from app.config import Settings
 from app.db import get_db
 from app.models import Frame, Game, Job
 from app.schemas import FrameOut, JobCreateMatch, JobOut
-from app.services import current_overlays, current_threshold
+from app.services import current_overlays, current_threshold, wake_gpu
 from app.video import Probe, frame_count
 
 from .common import current_user, error, frame_out, job_out, settings_dep, total_frames
@@ -61,6 +61,7 @@ def run_match(
     game.status = "queued"
     db.add(job)
     db.commit()
+    wake_gpu(db, s)
     return job_out(job, db)
 
 

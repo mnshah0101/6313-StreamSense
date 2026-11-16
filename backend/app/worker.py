@@ -131,10 +131,19 @@ class Worker:
         )
         self._beat("starting", force=True)
         self.backend.load()
+        last_work = time.monotonic()
         while not stop.is_set():
             try:
                 self._beat("idle")
-                if not self.run_once():
+                if self.run_once():
+                    last_work = time.monotonic()
+                else:
+                    idle = self.s.idle_shutdown_sec
+                    if idle and time.monotonic() - last_work > idle:
+                        log.info("idle for %ss: stopping this machine", idle)
+                        self._beat("stopped", force=True)
+                        os.system(self.s.idle_shutdown_cmd)  # noqa: S605 - fixed, configured command
+                        return
                     stop.wait(self.s.poll_sec)
             except Exception:  # noqa: BLE001 - the loop must survive anything
                 log.exception("worker loop error")
