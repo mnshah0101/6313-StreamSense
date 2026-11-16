@@ -40,7 +40,9 @@ def env_file() -> dict[str, str]:
 
 
 def session() -> boto3.Session:
-    return boto3.Session(profile_name=os.environ.get("AWS_PROFILE", "streamsense-deploy"), region_name=REGION)
+    return boto3.Session(
+        profile_name=os.environ.get("AWS_PROFILE", "streamsense-deploy"), region_name=REGION
+    )
 
 
 def tag(name: str) -> list[dict]:
@@ -62,10 +64,14 @@ def key_pair(ec2) -> str:  # noqa: ANN001
 
 def security_group(ec2) -> str:  # noqa: ANN001
     vpc = ec2.describe_vpcs(Filters=[{"Name": "isDefault", "Values": ["true"]}])["Vpcs"][0]["VpcId"]
-    found = ec2.describe_security_groups(Filters=[{"Name": "group-name", "Values": [NAME]}])["SecurityGroups"]
+    found = ec2.describe_security_groups(Filters=[{"Name": "group-name", "Values": [NAME]}])[
+        "SecurityGroups"
+    ]
     if found:
         return found[0]["GroupId"]
-    sg = ec2.create_security_group(GroupName=NAME, Description="StreamSense API: SSH, HTTP, HTTPS", VpcId=vpc)["GroupId"]
+    sg = ec2.create_security_group(
+        GroupName=NAME, Description="StreamSense API: SSH, HTTP, HTTPS", VpcId=vpc
+    )["GroupId"]
     ec2.authorize_security_group_ingress(GroupId=sg, IpPermissions=[
         {"IpProtocol": "tcp", "FromPort": p, "ToPort": p, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}
         for p in (22, 80, 443)
@@ -86,7 +92,9 @@ def role(iam, bucket: str, prefix: str) -> str:  # noqa: ANN001
         iam.get_role(RoleName=NAME)
     except ClientError:
         iam.create_role(RoleName=NAME, AssumeRolePolicyDocument=json.dumps(trust), Tags=tag(NAME))
-    iam.put_role_policy(RoleName=NAME, PolicyName="streamsense-api", PolicyDocument=json.dumps(policy))
+    iam.put_role_policy(
+        RoleName=NAME, PolicyName="streamsense-api", PolicyDocument=json.dumps(policy)
+    )
     try:
         iam.get_instance_profile(InstanceProfileName=NAME)
     except ClientError:
@@ -152,7 +160,9 @@ def elastic_ip(ec2) -> dict:  # noqa: ANN001
     found = ec2.describe_addresses(Filters=[{"Name": "tag:Name", "Values": [NAME]}])["Addresses"]
     if found:
         return found[0]
-    a = ec2.allocate_address(Domain="vpc", TagSpecifications=[{"ResourceType": "elastic-ip", "Tags": tag(NAME)}])
+    a = ec2.allocate_address(
+        Domain="vpc", TagSpecifications=[{"ResourceType": "elastic-ip", "Tags": tag(NAME)}]
+    )
     return {"AllocationId": a["AllocationId"], "PublicIp": a["PublicIp"]}
 
 
@@ -201,7 +211,14 @@ def up() -> None:
 def ssh_cmd() -> list[str]:
     ec2 = session().client("ec2")
     eip = elastic_ip(ec2)
-    return ["ssh", "-i", str(KEY_PATH), "-o", "StrictHostKeyChecking=accept-new", f"ubuntu@{eip['PublicIp']}"]
+    return [
+        "ssh",
+        "-i",
+        str(KEY_PATH),
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        f"ubuntu@{eip['PublicIp']}",
+    ]
 
 
 def update() -> None:
