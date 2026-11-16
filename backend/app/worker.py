@@ -139,7 +139,7 @@ class Worker:
                     last_work = time.monotonic()
                 else:
                     idle = self.s.idle_shutdown_sec
-                    if idle and time.monotonic() - last_work > idle:
+                    if idle is not None and time.monotonic() - last_work > idle:
                         log.info("idle for %ss: stopping this machine", idle)
                         self._beat("stopped", force=True)
                         os.system(self.s.idle_shutdown_cmd)  # noqa: S605 - fixed, configured command

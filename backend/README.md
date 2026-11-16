@@ -52,6 +52,22 @@ with, and loading refuses an adapter trained on a different base-model revision.
 (max |diff| 0.004). On ICE, build the GPU env on scratch, hard-linked from the uv cache:
 `UV_PROJECT_ENVIRONMENT=~/scratch/streamsense/api-venv-gpu UV_LINK_MODE=hardlink uv sync --extra gpu`.
 
+## Deployment (shared database: PACE + cloud)
+
+PACE and the online demo share **one Postgres (Neon) and one S3 bucket**, so they see the same
+games, results, users and job queue. Any worker that is up claims queued jobs: the PACE GPU job
+(H100/H200/Blackwell) processes long videos fast; a small cloud GPU covers the demo.
+
+| Piece | Where | How |
+| --- | --- | --- |
+| Database | Neon (Postgres 18, us-east-2) | `STREAMSENSE_API_DB_URL` in `.env` (provider URLs are mapped to psycopg). `scripts/sqlite_to_postgres.py` copied the earlier SQLite data. |
+| API (no GPU) | EC2 t3.small, HTTPS via Caddy on `<elastic-ip>.sslip.io` | `python scripts/aws_api.py up` (idempotent; IAM role scoped to the bucket prefix), `... update` to pull + restart |
+| Web app | Vercel | `frontend/` with `vercel.json` rewriting `/api/:path*` to the API URL, built with `VITE_API_URL=/api` (same origin, so session cookies work) |
+| GPU workers | PACE (`scripts/pace_up.sh`) and, when the account has G-instance quota, an on-demand EC2 L4 | set `GPU_INSTANCE_ID` on the API to start it when work is queued and no worker is online; `IDLE_SHUTDOWN_SEC` on that worker stops it when idle |
+
+The S3 bucket's CORS rule must allow `PUT` from each UI origin (`localhost:5173`, the Vercel
+domains) and expose `ETag`.
+
 ## Accounts and roles
 
 Sign-in with email + password; a session token lives in an HttpOnly, SameSite=Lax cookie

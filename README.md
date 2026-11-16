@@ -57,6 +57,10 @@ inside the client's 5 s/frame budget. A real 22-minute match (269 frames) took a
 end to end on one GPU. The **Status** page in the app tracks speed, latency, queue time and
 per-GPU throughput over time.
 
+**Live demo:** https://streamsense-nine.vercel.app (sign-in required; accounts are created by
+an admin). The web app runs on Vercel, the API on AWS, data in Neon Postgres and S3, and GPU
+workers on Georgia Tech PACE (H100/H200/Blackwell) share the same job queue.
+
 ## What the app does
 
 - **New Analysis:** upload an MP4/MOV (up to 10 GB / 10 h) or an image with the game details. Large
