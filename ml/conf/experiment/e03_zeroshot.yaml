@@ -1,0 +1,6 @@
+# @package _global_
+defaults:
+  - override /model: qwen3_5_0_8b
+  - override /train: none
+experiment_id: E-03-lite
+stage: 4

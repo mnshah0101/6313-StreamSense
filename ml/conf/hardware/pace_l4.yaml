@@ -1,0 +1,5 @@
+defaults:
+  - pace_generic
+  - _self_
+# Only select after checking that this GPU resource exists on the target cluster.
+requested_gpu_type: l4

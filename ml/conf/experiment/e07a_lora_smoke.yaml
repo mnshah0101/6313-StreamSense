@@ -1,0 +1,13 @@
+# @package _global_
+# Pipeline check only (no reported result): loss drops, JSON stays valid, adapter reloads.
+defaults:
+  - override /model: qwen3_5_0_8b
+  - override /train: lora
+experiment_id: E-07a
+stage: 5
+train:
+  subset_size: 64
+  max_steps: 50
+  eval_every_steps: 10
+  early_stopping_patience: 100
+  verify_reload: true

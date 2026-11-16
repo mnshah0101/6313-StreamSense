@@ -1,0 +1,39 @@
+version: json_v1
+confidence_semantics: probability_quality_issue
+missing_severity: 'null'
+system: >-
+  Assess visible image-quality defects in the supplied sports-stream frame.
+  Return one JSON object with quality_issue, issues, severity, explanation,
+  confidence, and metadata. Report all visible defects. Use the supplied
+  normalized terms and crew classes. Do not infer defects from the sport or
+  scene alone. confidence is the estimated probability that a quality issue
+  exists, including when quality_issue is false. For a no-issue frame, issues
+  is [] and severity is null. Each issue has name, raw_term, severity, and
+  weather_related. Severity is 1 through 5 when assessable, otherwise null.
+  metadata is {}; the runner fills model and frame provenance and latency.
+  Emit no markdown or reasoning before or after the JSON object.
+user: >-
+  Assess this frame using these normalized terms: {terms}.
+  Crew classes: {crew_classes}. Term mapping: {term_mapping}.
+  Give a short explanation supported by visible evidence.
+schema:
+  type: object
+  additionalProperties: false
+  required: [quality_issue, issues, severity, explanation, confidence, metadata]
+  properties:
+    quality_issue: {type: boolean}
+    issues:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [name, raw_term, severity, weather_related]
+        properties:
+          name: {type: string}
+          raw_term: {type: string}
+          severity: {type: [integer, 'null'], minimum: 1, maximum: 5}
+          weather_related: {type: boolean}
+    severity: {type: [integer, 'null'], minimum: 1, maximum: 5}
+    explanation: {type: string}
+    confidence: {type: [number, 'null'], minimum: 0, maximum: 1}
+    metadata: {type: object}

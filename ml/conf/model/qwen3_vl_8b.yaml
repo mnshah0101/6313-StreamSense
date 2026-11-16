@@ -1,0 +1,12 @@
+name: qwen3_vl_8b
+model_id: Qwen/Qwen3-VL-8B-Instruct
+revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
+dtype: bfloat16
+trust_remote_code: false
+max_new_tokens: 256
+do_sample: false
+thinking: false
+fallback: null
+batch_size: 16  # inference
+image_max_side: 896  # 1920x1080 frames -> 896x504 before the processor
+answer_prefix: '{"quality_issue":'  # forced; first token gives P(issue)

@@ -1,0 +1,6 @@
+# @package _global_
+defaults:
+  - override /model: brisque_niqe
+  - override /train: none
+experiment_id: E-02a
+stage: 3

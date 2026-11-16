@@ -1,0 +1,2 @@
+# Last run of job 5922039: seed rerun of the best single result (4B + vision LoRA)
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2] seed=0

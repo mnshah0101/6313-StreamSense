@@ -1,0 +1,17 @@
+# Lane A, follows explore_4a (job 5927060). Small/medium models only (pairs with lane B's 8B/9B).
+# New families, plain LoRA (seed 42): compare with Qwen3.5 2B 0.862 / 4B 0.892±0.020
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true
++experiment=e07c_lora_explore model=internvl3_5_4b train.gradient_checkpointing=true
++experiment=e07c_lora_explore model=qwen3_vl_2b train.gradient_checkpointing=true
++experiment=e07c_lora_explore model=internvl3_5_2b train.gradient_checkpointing=true
+# LoRA styles on Qwen3.5-4B (plain-LoRA reference: 0.892±0.020 over 4 seeds)
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.style=dora
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.style=rslora
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.style=loha
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.style=lokr
+# New families + vision LoRA
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2]
+# 01:36 swapped InternVL3.5-4B follow-ups (base run AP 0.818, clearly below Qwen 4B)
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true seed=1
+# Second seeds of the new 4B-class families
+# 04:07 moved to lane B (explore_4b) so lane A finishes before the job ends

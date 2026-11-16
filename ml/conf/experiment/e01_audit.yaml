@@ -1,0 +1,4 @@
+# @package _global_
+experiment_id: E-01
+stage: 2
+experiment_note: Full image validation, duplicate audit, and locked game split.

@@ -1,0 +1,13 @@
+name: cnn
+lr: 0.0001
+epochs: 20
+batch_size: 16
+grad_accum: 1
+bf16: true
+num_workers: 2
+weight_decay: 0.01
+warmup_ratio: 0.05
+scheduler: cosine
+early_stopping_patience: 3
+selection_metric: recall_at_precision_target
+loss_weights: {binary: 1.0, terms: 1.0, severity: 0.25}

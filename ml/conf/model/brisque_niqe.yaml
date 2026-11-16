@@ -1,0 +1,6 @@
+name: brisque_niqe
+model_id: pyiqa/brisque-niqe
+revision: pyiqa-0.1.16
+dtype: float32
+classical_metrics: [brisque, niqe]
+classical_estimator: logistic_regression

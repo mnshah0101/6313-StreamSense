@@ -1,0 +1,11 @@
+# Smoke checks for new LoRA styles and model families (E-07a: 64 frames, 50 steps, reload check).
++experiment=e07a_lora_smoke train.lora.style=dora
++experiment=e07a_lora_smoke train.lora.style=rslora
++experiment=e07a_lora_smoke train.lora.style=loha
++experiment=e07a_lora_smoke train.lora.style=lokr
++experiment=e07a_lora_smoke model=qwen3_vl_4b train.gradient_checkpointing=true
++experiment=e07a_lora_smoke model=internvl3_5_4b train.gradient_checkpointing=true train.lora.vision_scope=model.vision_tower.encoder.layer train.lora.vision_target_modules=[q_proj,k_proj,v_proj,projection_layer,fc1,fc2]
++experiment=e07a_lora_smoke model=qwen3_vl_8b train.gradient_checkpointing=true
++experiment=e07a_lora_smoke model=qwen3_5_9b train.gradient_checkpointing=true
+# requeue: DoRA OOM at 17:57 (48 GB MIG slice shared with a 4B run); gradient checkpointing on
++experiment=e07a_lora_smoke train.lora.style=dora train.gradient_checkpointing=true

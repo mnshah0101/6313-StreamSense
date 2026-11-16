@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - override /model: qwen3_5_0_8b
+  - override /train: lora
+experiment_id: E-07b
+stage: 5
+experiment_note: Nine fixed-seed runs; rerun the best two configurations with seeds 0, 1, 2 after validation selection.
+hydra:
+  sweeper:
+    params:
+      train.lora.r: 8,16,32
+      train.lr: 5e-5,1e-4,2e-4

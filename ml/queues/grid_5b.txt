@@ -1,0 +1,23 @@
+# Job 5938799: Qwen3-VL-4B batch x lr grid (seed 42), exploration, grid (seed 0). Eval every ~200 examples.
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=8 train.grad_accum=1 train.eval_every_steps=25 train.lr=0.0001 seed=42
+# from line 2: inference batch 16 (slice shared with another user's job; smaller prediction-pass peak)
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=8 train.grad_accum=4 train.eval_every_steps=6 train.lr=0.0001 seed=42 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=8 train.grad_accum=2 train.eval_every_steps=12 train.lr=0.0002 seed=42 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=4 train.grad_accum=1 train.eval_every_steps=50 train.lr=0.0004 seed=42 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=8 train.grad_accum=2 train.eval_every_steps=12 train.lr=0.0004 seed=42 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.r=8 train.lora.alpha=16 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.alpha=16 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.decision_loss_weight=0.0 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.dropout=0.1 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=4 train.grad_accum=1 train.eval_every_steps=50 train.lr=0.0001 seed=0 model.batch_size=16
+# 17:50 lower-half-layer seed reruns moved ahead of the remaining grid cells
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] model.batch_size=16 seed=1
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=8 train.grad_accum=2 train.eval_every_steps=12 train.lr=0.0001 seed=0 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=4 train.grad_accum=1 train.eval_every_steps=50 train.lr=0.0002 seed=0 model.batch_size=16
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true train.batch_size=8 train.grad_accum=4 train.eval_every_steps=6 train.lr=0.0002 seed=0 model.batch_size=16
+# 21:55 swapped lr-4e-4 seed-0 cell (train.lr=0.0004) for a class-loss run
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true model.batch_size=16 train.lora.layers=[0,17] train.class_loss_weight=1.0
+# 21:55 swapped lr-4e-4 seed-0 cell (train.lr=0.0004) for a class-loss run
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true model.batch_size=16 train.class_loss_weight=2.0
+# 22:45 seed rerun: class loss w=1 (class micro F1 0.478, binary R@P90 0.686)
++experiment=e07c_lora_explore model=qwen3_vl_4b train.gradient_checkpointing=true model.batch_size=16 train.lora.layers=[0,17] train.class_loss_weight=1.0 seed=0

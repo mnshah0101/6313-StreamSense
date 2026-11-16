@@ -1,0 +1,44 @@
+name: lora
+lr: 0.0001
+epochs: 3
+batch_size: 8  # measured fastest per example on the 48 GB MIG slice (0.8B)
+grad_accum: 1
+bf16: true
+gradient_checkpointing: false  # 0.8B at batch 8 fits in ~23 GiB without it
+num_workers: 2
+warmup_ratio: 0.05
+scheduler: cosine
+weight_decay: 0.01
+max_grad_norm: 1.0
+# Extra CE on the true/false token (1 of ~50 answer tokens); 1.0 = decision weighs as much
+# as the rest of the answer. 0 reproduces plain token-averaged SFT.
+decision_loss_weight: 1.0
+# Extra CE on the crew-class name tokens of each issue (0 = off): makes defect type a trained
+# objective rather than a share of the token average.
+class_loss_weight: 0.0
+eval_every_steps: 25  # score-only val pass (one forward, no generation)
+early_stopping_patience: 6  # evaluations (x eval_every_steps) without improvement; R@P is jumpy
+selection_start_fraction: 0.0  # e.g. 0.25: ignore checkpoints from the first quarter of training
+selection_metric: recall_at_precision_target
+class_balanced_sampling: false
+lora:
+  # lora = plain LoRA; dora = weight-decomposed LoRA; rslora = rank-stabilised scaling
+  # (alpha/sqrt(r)); loha / lokr = Hadamard / Kronecker-product low-rank adapters.
+  style: lora
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  # Leaf names, resolved to full names under language_scope only (the Qwen2.5-VL vision
+  # tower also has gate/up/down_proj). in_proj_qkv/in_proj_z/out_proj are Qwen3.5's
+  # linear-attention layers (18 of its 24 layers); absent names are simply unmatched.
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj,
+                   in_proj_qkv, in_proj_z, out_proj]
+  language_scope: model.language_model
+  layers: null  # [first, last] (inclusive) language layers to adapt; null = all
+  # Vision-encoder LoRA (base weights stay frozen). Qwen3.5 blocks: attn.qkv, attn.proj,
+  # mlp.linear_fc1, mlp.linear_fc2. Empty = vision encoder untouched.
+  vision_target_modules: []
+  vision_scope: model.visual.blocks
+  freeze_vision: true
+  train_projector: false
+  projector_module: model.visual.merger

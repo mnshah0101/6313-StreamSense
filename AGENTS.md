@@ -1,62 +1,51 @@
 # Instructions for agents working on StreamSense
 
-## Read the project documents first
+Read the root `README.md` first, then the README of the part you are changing:
+`ml/` (research and training), `backend/` (API, worker, storage, auth), `frontend/` (web app).
+`docs/` holds the October planning documents; they explain intent, but the code and the READMEs
+describe what is actually built.
 
-Start with `docs/README.md`, then read the documents needed for the task. `docs/sources.md`
-explains where requirements came from. `docs/decisions.md` lists questions the team still needs
-to answer. The architecture, data, API, security, ML and design documents describe the planned app.
-Figma shows proposed interactions; its example scores and severity ratings are not measured results.
+## Ground rules
 
-## Stop at the assignment's limit
+- **Never commit client material.** No footage, frames, label rows, predictions, trained
+  checkpoints, private links, credentials or personal contact details. This repository is public.
+  `.gitignore` is not enough: review what you stage. Tests use synthetic data only.
+- **Keep the test set locked.** Choose models, prompts and thresholds on validation data. The
+  locked test set (`ml/splits/LOCKED_TEST.json`, kept out of Git) is evaluated once, on a final
+  model, and that run is recorded in `ml/docs/EXPERIMENT_LOG.md`.
+- **Never invent results.** Report numbers you measured, with the data split and hardware. A check
+  that was not run is not a pass. Severity stays "not validated per defect" until per-defect labels
+  exist; a missing heat map never means a frame is clean.
+- **Keep model output and human review separate.** Reviews never change what the model said; every
+  result keeps its model version and alert-threshold version.
+- **Ask before changing scope**: label meanings, data splits, retention, access rules, hosting.
 
-This is a Development Readiness submission. Preparing the environment is allowed. TASK-001 is
-**plan only** until the team records its review and the instructor approves implementation.
-Do not build its database tables, migration scripts, login, uploads, analysis or review features
-while reviewing the plan. Never claim that a teammate, client or instructor approved something
-unless that approval has actually been recorded.
+## How the parts fit
 
-## How to approach larger tasks
+- `ml/` trains and evaluates; a training run directory (config + LoRA adapter) is what the backend
+  loads (`STREAMSENSE_API_RUN_DIR`). Experiments are Hydra configs; results go to
+  `ml/docs/EXPERIMENT_LOG.md`.
+- `backend/` is one FastAPI app plus a GPU worker that shares the database and media store. The
+  API never runs the model in a request; it queues jobs. Workers claim jobs with a lease and write
+  results batch by batch. Roles: viewer < reviewer < admin; every route declares its role.
+- `frontend/` talks only to the API through `/api` (session cookie, `X-Requested-With` on changes).
+  Keep the design minimal: show what a reviewer acts on; details go in tooltips.
 
-1. Read the task, relevant documents, existing code and tests.
-2. Identify what must change, how it affects private data, and what is still unclear.
-3. Propose a plan with a clear scope, completion criteria, tests and expected failure handling.
-4. Ask the team about decisions that must be settled before the affected work can begin.
-5. Once approved, make focused changes, run the checks and report the results honestly.
+## Checks before proposing a change
 
-You may choose and explain routine coding details. Changes to project scope, label meaning,
-data splits, data retention, access rules or hosting need a recorded team/client decision as
-appropriate. Continue work that does not depend on an unanswered question.
+```sh
+make verify              # backend tests (every API test runs against local and mocked-S3
+                         # storage), ruff for backend and ml, frontend type check + build
+cd ml && uv run pytest   # ml tests (needs the models extra: torch)
+```
 
-## Follow the chosen design
+Test behaviour that matters: access checks per role, bad inputs, conflicting reviews, worker
+crashes and retries, and that results trace back to their model and threshold versions. Avoid
+tests that only restate the code.
 
-- React/TypeScript handles the screens. FastAPI checks access and handles app requests.
-- A separate background worker decodes videos and runs the model. API requests add jobs to a queue.
-- PostgreSQL stores records and job status. Private media and saved models stay outside Git.
-- Translate research outputs into the app's format explicitly; do not silently change field meanings.
-- Keep model results separate from human reviews. Confirming an alert does not notify a crew.
-- Do not add production-stream access, Slack delivery, automatic shutdown or game-state detection.
-- Leave unknown severity unavailable; do not copy an image's severity onto each defect.
-- Use validation data to choose models, prompts and thresholds. Keep the final test set locked.
-- Never invent results, heat maps, passing tests or deployment status.
+## Working on PACE
 
-## Check the work
-
-Use `make setup` and `make verify` before proposing a merge. The saved dependency versions must
-stay reproducible. Checks cover Python code style/tests and frontend code style, types and build.
-Run `make verify-db` with an explicit disposable PostgreSQL 17 `DATABASE_URL` to check database
-connectivity. CI requires this check; it does not create tables or prove TASK-001 complete.
-For TASK-001, test database setup scripts and rules on a disposable PostgreSQL database.
-SQLite cannot prove that PostgreSQL's JSONB fields and rules behave correctly.
-For later features, test access checks, bad inputs, conflicting reviews, retries and the ability
-to trace results to their source. Avoid tests that only repeat the code being tested.
-Report missing services and skipped checks. Update `docs/readiness/verification.md` when results
-change. A check that was not run is not a pass.
-
-## Protect files and teammates' work
-
-Keep secrets in ignored environment files. Never commit client media, label rows, predictions,
-saved models, private viewing links, personal contact details or meeting recordings.
-Use made-up test data. Do not upload client assets to external services.
-Review the files and their contents before publishing; `.gitignore` alone cannot prevent leaks.
-Use a branch and a focused pull request. Do not overwrite teammates' changes, change account
-permissions or publish a live service as part of local setup.
+GPU jobs use `-A coc -q coc-ice -p coc-gpu,ice-gpu,ice-bw-gpu` with a GPU-type constraint;
+large files (data, outputs, virtual environments, caches) go on scratch, never home (30 GB quota);
+never write one SQLite file from two machines at once. `backend/scripts/pace_up.sh` starts and
+stops the whole stack.

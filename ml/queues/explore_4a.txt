@@ -1,0 +1,8 @@
+# Job 5927060 queue A (full RTX PRO 6000): confirm 4B + vision LoRA, then 4B variants.
+# confirmation: seeds 1 and 2 (seeds 42 and 0 done: 0.918 / 0.894)
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2] seed=1
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2] seed=2
+# 4B + vision variants (single seed exploration)
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2] train.class_balanced_sampling=true
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2] model.image_max_side=1280
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2] train.lr=0.0001

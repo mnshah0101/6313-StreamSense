@@ -1,0 +1,6 @@
+name: cnn_resnet18
+model_id: torchvision/resnet18
+revision: IMAGENET1K_V1
+pretrained: true
+dtype: float32
+severity_head: regression

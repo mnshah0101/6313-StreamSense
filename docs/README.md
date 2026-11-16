@@ -1,5 +1,11 @@
 # Project documents
 
+> **Status (November 2026):** these are the October planning and readiness documents. The system
+> is now built: see the [root README](../README.md) for what exists, the measured results, and how
+> to run it, and `ml/`, `backend/`, `frontend/` for each part. Where the code and these plans
+> differ (for example SQLite in development instead of PostgreSQL, a lease-based worker queue,
+> S3 instead of Vercel Blob, session sign-in before OIDC), the code and its READMEs are current.
+
 These documents explain what we plan to build and what a developer needs to know before starting.
 They are based on the team's earlier work. Chang has confirmed the team's review and agreement;
 see the [review record](readiness/team-review.md). Unresolved decisions remain listed separately.

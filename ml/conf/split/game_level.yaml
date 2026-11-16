@@ -1,0 +1,12 @@
+ratios: {train: 0.70, val: 0.15, test: 0.15}
+# Fixed, independent of the top-level (training) seed: seed reruns must share one
+# train/val split. 42 produced splits/LOCKED_TEST.json.
+seed: 42
+group_key: game_id
+stratify: true
+method: seeded_search
+n_trials: 2000
+manifest_path: splits/split_v1_seed${split.seed}.json
+locked_test_path: splits/LOCKED_TEST.json
+cross_game_duplicates: group_connected_games
+lock_test: true

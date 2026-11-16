@@ -1,0 +1,28 @@
+# Batch 2: requeue quota failures, then combine batch-1 winners and push "gentler".
+# requeued (failed on disk quota in batch 1)
++experiment=e07c_lora_explore model.image_max_side=1280 train.gradient_checkpointing=true
++experiment=e07c_lora_explore model=qwen3_5_2b train.gradient_checkpointing=true
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true
++experiment=e07c_lora_explore train.lora.train_projector=true
+# combinations of winners
++experiment=e07c_lora_explore train.lora.layers=[0,11] train.lora.alpha=16
++experiment=e07c_lora_explore train.lora.layers=[0,11] train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2]
++experiment=e07c_lora_explore train.lora.layers=[0,11] train.lora.alpha=16 train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2]
+# how low should the layer range go?
++experiment=e07c_lora_explore train.lora.layers=[0,5]
++experiment=e07c_lora_explore train.lora.layers=[0,7]
+# even gentler adapters
++experiment=e07c_lora_explore train.lora.r=8 train.lora.alpha=8
++experiment=e07c_lora_explore train.lora.alpha=8
++experiment=e07c_lora_explore train.lr=0.0001 train.lora.alpha=16
+# --- appended 13:37: seed reruns of batch-1/2 candidates (single-seed results are within noise) ---
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true seed=0
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true seed=1
++experiment=e07c_lora_explore train.lora.layers=[0,11] seed=0
++experiment=e07c_lora_explore train.lora.layers=[0,11] seed=1
++experiment=e07c_lora_explore train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2] seed=0
++experiment=e07c_lora_explore train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2] seed=1
++experiment=e07c_lora_explore model.image_max_side=1280 train.gradient_checkpointing=true seed=0
+# --- appended 15:06: third fresh 4B seed (confirmation) + 4B with vision LoRA (exploration) ---
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true seed=2
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2]

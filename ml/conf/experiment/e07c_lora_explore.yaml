@@ -1,0 +1,11 @@
+# @package _global_
+# Exploration sweeps (layers, vision LoRA, LR, rank, epochs, resolution, model size).
+# Base = the grid's lr with r=16; each queue line overrides one or two knobs.
+defaults:
+  - override /model: qwen3_5_0_8b
+  - override /train: lora
+experiment_id: E-07c
+stage: 5
+experiment_note: Single-seed exploration; rerun apparent winners with seeds before trusting them.
+train:
+  lr: 0.0002

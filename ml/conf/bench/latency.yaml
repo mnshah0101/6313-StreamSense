@@ -1,0 +1,9 @@
+backend: hf
+batch_sizes: [1, 2, 4, 8]
+concurrency: [1, 2, 4, 8, 16]
+n_frames: 200
+warmup: 10
+image_size: ${data.image_size}
+sample_interval_s: 5.0
+latency_limit_s: 5.0
+include_queue_time: true

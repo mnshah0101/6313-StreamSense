@@ -1,0 +1,12 @@
+device: cuda
+target_gpu: NVIDIA L4
+requested_gpu_type: ${oc.env:STREAMSENSE_GPU_TYPE,null}
+gpu_count: 1
+cpus: 8
+memory_gb: 32
+time_limit: '04:00:00'
+account: ${oc.env:STREAMSENSE_SLURM_ACCOUNT,null}
+qos: ${oc.env:STREAMSENSE_SLURM_QOS,null}
+# TODO(stage 7): confirm actual PACE module names with module avail.
+modules: [anaconda3, 'cuda/TODO_CONFIRM_VERSION']
+cache_dir: ${oc.env:STREAMSENSE_CACHE_DIR,null}

@@ -1,0 +1,13 @@
+name: qwen3_5_2b
+model_id: Qwen/Qwen3.5-2B
+revision: 15852e8c16360a2fea060d615a32b45270f8a8fc
+dtype: bfloat16
+trust_remote_code: false
+max_new_tokens: 256
+do_sample: false
+thinking: false
+fallback: qwen2_5_vl_3b
+fallback_scope: smoke_only
+batch_size: 32  # inference; generation measured 382 -> 174 ms/frame vs batch 8 (64 is slower)
+image_max_side: 896  # 1920x1080 frames -> 896x504 before the processor
+answer_prefix: '{"quality_issue":'  # forced; first token gives P(issue)

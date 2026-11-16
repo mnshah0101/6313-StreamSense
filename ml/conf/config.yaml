@@ -1,0 +1,75 @@
+defaults:
+  - streamsense_schema
+  - data: v1
+  - data@taxonomy: taxonomy
+  - split: game_level
+  - model: qwen3_5_0_8b
+  - prompt: json_v1
+  - train: none
+  - eval: default
+  - bench: latency
+  - hardware: local
+  - _self_
+
+seed: 42
+experiment_id: development
+stage: 1
+run:
+  project_root: ${oc.env:STREAMSENSE_PROJECT_ROOT,.}
+  output_root: ${run.project_root}/outputs
+  cudnn_deterministic: true
+  deterministic_algorithms: false
+report:
+  runs: []  # empty: latest completed training run per experiment below
+  experiments: [E-02a, E-02b, E-03-lite, E-07b]
+  output: outputs/friday_report.md
+  followup_top_k: 2  # E-07b: rerun the best k grid configs ...
+  followup_seeds: [0, 1, 2]  # ... with these training seeds
+  notebook: notebooks/streamsense_report.ipynb  # repo version: reads run artifacts, no outputs
+  standalone_dir: outputs/client_report  # client copy: embedded data + executed + HTML (ignored)
+logging:
+  csv: true
+  tensorboard: true
+  cloud: false
+  upload_images: false
+  mlflow: true  # local SQLite store (ignored by git); browse with `mlflow ui`, see README
+  mlflow_uri: sqlite:///${run.project_root}/mlruns/mlflow.db
+  mlflow_artifacts: ${run.project_root}/mlruns/artifacts
+privacy:
+  protected_dirs: [data, outputs, multirun, checkpoints, splits, logs, wandb, mlruns]
+  protected_files: [docs/DATA_SCHEMA.md, labels.json]
+  blocked_extensions:
+    - .jpg
+    - .jpeg
+    - .png
+    - .webp
+    - .gif
+    - .bmp
+    - .tif
+    - .tiff
+    - .zip
+    - .tar
+    - .gz
+    - .tgz
+    - .7z
+    - .rar
+    - .mp4
+    - .mov
+    - .avi
+    - .mkv
+    - .pt
+    - .pth
+    - .ckpt
+    - .safetensors
+    - .bin
+    - .parquet
+    - .arrow
+  scan_json_contents: true
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: ${run.output_root}/${experiment_id}/${now:%Y%m%dT%H%M%S}_${run_token:}
+  sweep:
+    dir: ${run.project_root}/multirun/${experiment_id}/${now:%Y%m%dT%H%M%S}_${run_token:}
+    subdir: ${hydra.job.num}

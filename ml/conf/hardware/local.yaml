@@ -1,0 +1,8 @@
+device: auto  # cuda when available
+target_gpu: NVIDIA L4
+requested_gpu_type: null
+gpu_count: 0
+cpus: 4
+memory_gb: 16
+time_limit: '01:00:00'
+modules: []

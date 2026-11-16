@@ -1,0 +1,25 @@
+# Exploration batch 1: one change per line vs the E-07c base (0.8B, r=16, lr=2e-4, all LM layers).
++experiment=e07c_lora_explore
+# which modules
++experiment=e07c_lora_explore train.lora.target_modules=[q_proj,k_proj,v_proj,o_proj,in_proj_qkv,in_proj_z,out_proj]
++experiment=e07c_lora_explore train.lora.target_modules=[gate_proj,up_proj,down_proj]
+# which layers
++experiment=e07c_lora_explore train.lora.layers=[0,11]
++experiment=e07c_lora_explore train.lora.layers=[12,23]
+# vision side
++experiment=e07c_lora_explore train.lora.vision_target_modules=[qkv,proj,linear_fc1,linear_fc2]
++experiment=e07c_lora_explore train.lora.train_projector=true
+# optimization
++experiment=e07c_lora_explore train.lr=0.0004
++experiment=e07c_lora_explore train.epochs=5
++experiment=e07c_lora_explore train.decision_loss_weight=3.0
++experiment=e07c_lora_explore train.lora.dropout=0.0
+# rank / scale
++experiment=e07c_lora_explore train.lora.r=64 train.lora.alpha=128
++experiment=e07c_lora_explore train.lora.alpha=16
+# input resolution
++experiment=e07c_lora_explore model.image_max_side=1280 train.gradient_checkpointing=true
+# model size
++experiment=e07c_lora_explore model=qwen3_5_2b train.gradient_checkpointing=true
++experiment=e07c_lora_explore model=qwen3_5_4b train.gradient_checkpointing=true
++experiment=e07c_lora_explore train.lora.train_projector=true

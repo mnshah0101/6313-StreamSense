@@ -1,0 +1,12 @@
+# Nov 2026 retrain (seed 1 run first, then seeds 0/2/3 via slurm/train.sbatch). Lines are overrides only:
+# lora_grid_array.sbatch adds +experiment=${EXPERIMENT}; submit with EXPERIMENT=e07c_lora_explore.
+model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] seed=42
+model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] seed=0
+model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] seed=1
+model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] seed=2
+model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] seed=3
+model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] train.class_loss_weight=0.5 seed=42
+model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] train.class_loss_weight=0.5 seed=0
+model=qwen3_vl_4b train.gradient_checkpointing=true train.lora.layers=[0,17] train.class_loss_weight=0.5 seed=1
+model=qwen3_5_9b train.gradient_checkpointing=true train.lora.layers=[0,15] seed=42
+model=qwen3_5_9b train.gradient_checkpointing=true train.lora.layers=[0,15] seed=0

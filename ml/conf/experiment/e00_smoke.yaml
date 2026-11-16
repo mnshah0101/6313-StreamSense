@@ -1,0 +1,15 @@
+# @package _global_
+# End-to-end smoke on generated synthetic data: tiny CNN, split, predictions, metrics.
+defaults:
+  - override /model: cnn_resnet18
+  - override /train: smoke
+  - override /hardware: local
+experiment_id: E-00
+stage: 3
+data:
+  synthetic_fixture: true
+  image_size: 64
+model:
+  pretrained: false
+eval:
+  bootstrap_samples: 50
