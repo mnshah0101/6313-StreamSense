@@ -94,7 +94,7 @@ and keep the same users and roles.
   ETags and game metadata creates the game and queues the job. The bucket needs a CORS rule
   allowing `PUT` from the UI origin and exposing `ETag`.
 - **Through the API**: `POST /analyses` (multipart file + metadata), used with local storage.
-- Limits: 10 GB per upload, 10 hours per video (`MAX_UPLOAD_MB`, `MAX_VIDEO_SEC`). The worker
+- Limits: 20 GB per upload, 10 hours per video (`MAX_UPLOAD_MB`, `MAX_VIDEO_SEC`). The worker
   decode-checks every upload, makes its poster and fails the job with a clear code if invalid.
 - Jobs report what they are doing for the UI: `stage` (queued with `queuePosition`,
   downloading with MB progress, checking, analyzing with `etaSec`, finishing) and a heartbeat.

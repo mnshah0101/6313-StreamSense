@@ -63,7 +63,7 @@ workers on Georgia Tech PACE (H100/H200/Blackwell) share the same job queue.
 
 ## What the app does
 
-- **New Analysis:** upload an MP4/MOV (up to 10 GB / 10 h) or an image with the game details. Large
+- **New Analysis:** upload an MP4/MOV (up to 20 GB / 10 h) or an image with the game details. Large
   files go straight from the browser to S3 in parallel parts.
 - **Match Analysis:** a severity-colored timeline that fills in while the job runs ("Analyzing ·
   32 / 269 · ~3 min left"), each frame with defects, the model's explanation and a heat map.

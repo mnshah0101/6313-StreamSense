@@ -63,7 +63,7 @@ class Settings(BaseSettings):
 
     # Sampling: production analyzes one frame every 5 seconds.
     frame_interval_sec: int = 5
-    max_upload_mb: int = 10240  # 10 GB per upload (streamed / multipart, never held in memory)
+    max_upload_mb: int = 20480  # 20 GB per upload (streamed / multipart, never held in memory)
     max_video_sec: int = 36000  # 10 hours, checked by decoding the upload
     media_io_threads: int = 16  # concurrent media writes (S3 PUTs) in the worker
     multipart_part_mb: int = 64  # direct-to-S3 upload part size (10 GB = 160 parts)

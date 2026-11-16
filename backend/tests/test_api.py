@@ -142,7 +142,7 @@ def test_too_large(client):
 
 def test_default_limits():
     s = make_settings("/x")
-    assert s.max_upload_mb == 10240 and s.max_video_sec == 36000  # 10 GB, 10 hours
+    assert s.max_upload_mb == 20480 and s.max_video_sec == 36000  # 20 GB, 10 hours
 
 
 # ---- games, re-runs, deletion ------------------------------------------------------------
