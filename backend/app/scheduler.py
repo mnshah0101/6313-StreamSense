@@ -95,6 +95,7 @@ def should_yield(db: Session, job: Job, worker_id: str, s: Settings) -> Job | No
     if idle:
         return None  # a free GPU will take it
     running = db.scalars(select(Job).where(Job.status == "running", Job.id != job.id))
-    if any(remaining_frames(r) > mine and r.preemptions < s.max_preemptions for r in running):
+    me = (mine, job.id)  # ties broken by id, so two equal jobs never both yield
+    if any((remaining_frames(r), r.id) > me and r.preemptions < s.max_preemptions for r in running):
         return None  # a longer job should yield instead
     return best

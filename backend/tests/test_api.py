@@ -776,3 +776,24 @@ def test_no_pause_while_another_gpu_is_idle(client, worker, tmp_path):
         db.commit()
     worker.process(long)
     assert client.get(f"/jobs/{long}").json()["status"] == "done"  # the idle GPU takes the clip
+
+
+@pytest.mark.parametrize("settings_overrides", [SCHED])
+def test_equal_jobs_never_both_yield(client, tmp_path):
+    """Two GPUs on equally long jobs: exactly one pauses for the short clip."""
+    from app.scheduler import should_yield
+
+    a = analyze(client, mp4(tmp_path / "a.mp4", seconds=60)).json()["job"]["id"]
+    b = analyze(client, mp4(tmp_path / "b.mp4", seconds=60)).json()["job"]["id"]
+    analyze(client, mp4(tmp_path / "s.mp4", seconds=10))
+    s = client.app_state.settings
+    with dbm.session() as db:
+        for jid, w in ((a, "gpu-a"), (b, "gpu-b")):
+            j = db.get(Job, jid)
+            j.status, j.worker_id = "running", w
+        db.commit()
+        yields = [
+            should_yield(db, db.get(Job, jid), w, s) is not None
+            for jid, w in ((a, "gpu-a"), (b, "gpu-b"))
+        ]
+    assert sorted(yields) == [False, True]

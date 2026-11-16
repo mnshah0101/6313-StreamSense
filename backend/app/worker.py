@@ -497,6 +497,19 @@ class Worker:
             shorter = should_yield(db, job, self.id, self.s) if job else None
             if shorter is None:
                 return False
+            done_at = job.done_frames
+        # Keep the video before announcing the pause, so whichever worker resumes this job
+        # (often this one, right after the short job) finds it. An open decoder keeps reading
+        # the moved file; if the pause then loses a race, the copy is removed when the job ends.
+        if self.store.name == "s3" and path != cached:
+            try:
+                cached.parent.mkdir(parents=True, exist_ok=True)
+                for old in sorted(cached.parent.glob("*"), key=lambda p: p.stat().st_mtime)[:-1]:
+                    old.unlink(missing_ok=True)  # keep at most two paused videos on disk
+                shutil.move(str(path), cached)
+            except OSError:
+                log.warning("could not keep the video of paused job %s", job_id, exc_info=True)
+        with dbm.session() as db:
             res = db.execute(
                 update(Job)
                 .where(Job.id == job_id, Job.worker_id == self.id, Job.status == "running")
@@ -506,24 +519,14 @@ class Worker:
                     stage="paused", stage_detail="Paused for a shorter video", stage_progress=None,
                 )
             )  # fmt: skip
-            if job.game_id and res.rowcount:
-                db.get(Game, job.game_id).status = "queued"
-            db.commit()
             if not res.rowcount:
+                db.rollback()
                 return False
-            log.info(
-                "job %s paused at frame %s for shorter job %s", job_id, job.done_frames, shorter.id
-            )
-        if (
-            self.store.name == "s3" and path != cached
-        ):  # keep the video to resume without re-download
-            try:
-                cached.parent.mkdir(parents=True, exist_ok=True)
-                for old in sorted(cached.parent.glob("*"), key=lambda p: p.stat().st_mtime)[:-1]:
-                    old.unlink(missing_ok=True)  # keep at most two paused videos on disk
-                shutil.move(str(path), cached)
-            except OSError:
-                log.warning("could not keep the video of paused job %s", job_id, exc_info=True)
+            game = db.get(Game, db.get(Job, job_id).game_id)
+            if game is not None:
+                game.status = "queued"
+            db.commit()
+        log.info("job %s paused at frame %s for shorter job %s", job_id, done_at, shorter.id)
         return True
 
     def _finish(
