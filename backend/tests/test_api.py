@@ -1,6 +1,7 @@
 import json
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -646,3 +647,9 @@ def test_large_upload_sizes_fit_postgres():
     from app.models import Upload
 
     assert isinstance(Upload.__table__.c.size.type, BigInteger)
+
+
+def test_worker_module_entrypoint_runs_after_helpers():
+    """`python -m app.worker` executes top to bottom: main() must come after every helper."""
+    src = (Path(__file__).resolve().parents[1] / "app" / "worker.py").read_text()
+    assert src.rstrip().endswith('if __name__ == "__main__":\n    main()')

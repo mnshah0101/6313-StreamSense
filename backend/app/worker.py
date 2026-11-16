@@ -541,10 +541,6 @@ def main() -> None:
         stop.set()
 
 
-if __name__ == "__main__":
-    main()
-
-
 _DONE = object()
 
 
@@ -573,3 +569,7 @@ def prefetch(items: Iterator, depth: int = 2) -> Iterator:
         if isinstance(x, BaseException):
             raise x
         yield x
+
+
+if __name__ == "__main__":
+    main()
