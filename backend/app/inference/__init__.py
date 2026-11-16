@@ -20,8 +20,25 @@ def build_backend(settings: Settings) -> Backend:
             settings.run_dir,
             settings.streamsense_repo,
             settings.device,
-            settings.batch_size,
+            auto_batch_size(settings.batch_size),
             settings.binary_threshold,
             settings.max_new_tokens,
         )
     raise ValueError(f"Unknown backend {settings.backend!r}")
+
+
+def auto_batch_size(configured: int = 0) -> int:
+    """Frames per inference call. An explicit setting wins; otherwise sized to the GPU with
+    headroom (Qwen3-VL-4B at batch 16 peaks ~11.4 GB, so 32 stays well under 40 GB). The worker
+    also halves a batch that runs out of memory, so a wrong guess costs time, not the job."""
+    if configured > 0:
+        return configured
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            gb = torch.cuda.get_device_properties(0).total_memory / 2**30
+            return 32 if gb >= 40 else 16 if gb >= 20 else 8
+    except ImportError:
+        pass
+    return 8

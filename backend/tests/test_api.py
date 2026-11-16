@@ -267,7 +267,7 @@ def test_expired_lease_requeues_and_resumes(client, worker, tmp_path):
     with worker.store.local_copy(key) as path:  # a worker that wrote 2 batches and died
         batches = dead._media_batches(path, 5, 0, t)
         for _ in range(2):
-            dead._save_batch(jid, gid, next(batches), "dummy@0.1", t, True)
+            dead._save_batch(next(batches), jid, gid, "dummy@0.1", t, True)
     assert client.get(f"/jobs/{jid}").json()["doneFrames"] == 8
     with dbm.session() as db:
         db.execute(update(Job).values(lease_expires_at=datetime.now(UTC) - timedelta(seconds=1)))
@@ -797,3 +797,33 @@ def test_equal_jobs_never_both_yield(client, tmp_path):
             for jid, w in ((a, "gpu-a"), (b, "gpu-b"))
         ]
     assert sorted(yields) == [False, True]
+
+
+# ---- batching ------------------------------------------------------------------------------
+
+
+def test_batch_size_auto_and_explicit():
+    from app.inference import auto_batch_size
+
+    assert auto_batch_size(12) == 12  # an explicit setting wins
+    assert auto_batch_size(0) in (8, 16, 32)  # sized to the GPU (8 on CPU)
+
+
+def test_out_of_memory_halves_the_batch(worker, monkeypatch):
+    calls = []
+
+    def fake(ims):
+        calls.append(len(ims))
+        if len(ims) > 2:
+            raise RuntimeError("CUDA out of memory. Tried to allocate 2.00 GiB")
+        return [x * 10 for x in ims]
+
+    import sys
+    import types
+
+    torch = types.SimpleNamespace(cuda=types.SimpleNamespace(empty_cache=lambda: None))
+    monkeypatch.setitem(sys.modules, "torch", torch)  # stand-in for empty_cache (CPU tests)
+    assert worker._oom_safe(fake, [1, 2, 3, 4, 5, 6, 7, 8]) == [10, 20, 30, 40, 50, 60, 70, 80]
+    assert worker.batch == 2 and calls[0] == 8  # smaller from now on; nothing lost or reordered
+    with pytest.raises(ValueError):
+        worker._oom_safe(lambda ims: (_ for _ in ()).throw(ValueError("other")), [1, 2])

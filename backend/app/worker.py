@@ -35,7 +35,7 @@ from app import auth as _auth  # noqa: F401  (registers user tables)
 from app import db as dbm
 from app.config import Settings, get_settings
 from app.defects import SPATIAL_DEFECTS
-from app.inference import Backend, build_backend
+from app.inference import Backend, auto_batch_size, build_backend
 from app.inference.base import FrameResult
 from app.media import POSTER_SIZE, MediaStore, build_store
 from app.models import Frame, Game, Job, Localization, ThresholdVersion, WorkerState
@@ -81,6 +81,10 @@ class Worker:
         self.io = ThreadPoolExecutor(
             max_workers=settings.media_io_threads, thread_name_prefix="media"
         )
+        # One saver thread: batch N is written (DB rows, S3 images, alerts) while the GPU runs
+        # batch N+1, so the GPU does not idle on network round trips.
+        self.saver = ThreadPoolExecutor(max_workers=1, thread_name_prefix="saver")
+        self.batch = getattr(backend, "batch_size", None) or auto_batch_size(settings.batch_size)
 
     # ---- queue -------------------------------------------------------------------------
 
@@ -202,7 +206,7 @@ class Worker:
             if job.started_at is None:
                 job.started_at = utcnow()
             job.model_id, job.threshold_id, job.hardware = mv.id, threshold.id, self.hardware
-            job.batch_size = self.s.batch_size
+            job.batch_size = self.batch
             _reset_peak_memory()
             if job.done_frames == 0:  # fresh (re-)run: replace earlier results
                 db.execute(delete(Frame).where(Frame.game_id == game.id))
@@ -240,14 +244,35 @@ class Worker:
                 job.stage_started_at, job.stage_start_frames = utcnow(), job.done_frames
                 job.heartbeat_at = utcnow()
                 db.commit()
-            for batch in self._media_batches(path, interval_ms / 1000, start, threshold):
-                if not self._still_mine(job_id):
-                    log.info("job %s cancelled or lease lost; stopping", job_id)
-                    return
-                self._save_batch(job_id, game_id, batch, mv.id, threshold, localize_all, total)
-                self._beat("busy", job_id)  # throttled to every 10 s; keeps Status "online"
-                if self._yield_to_shorter(job_id, path, cached):
-                    return
+            save = (job_id, game_id, mv.id, threshold, localize_all, total)
+            pending = None  # the previous batch, being saved in the background
+            try:
+                for batch in self._media_batches(path, interval_ms / 1000, start, threshold):
+                    if pending is not None:  # results committed in order, one batch behind
+                        self._localize_pending(job_id, game_id, mv.id, pending.result())
+                        pending = None
+                    if not self._still_mine(job_id):
+                        log.info("job %s cancelled or lease lost; stopping", job_id)
+                        return
+                    self._beat("busy", job_id)  # throttled to every 10 s; keeps Status "online"
+
+                    def flush(batch=batch) -> None:  # save this batch now (before a pause)
+                        self._localize_pending(
+                            job_id, game_id, mv.id, self._save_batch(batch, *save)
+                        )
+
+                    if self._yield_to_shorter(job_id, path, cached, flush):
+                        return
+                    pending = self.saver.submit(self._save_batch, batch, *save)
+                if pending is not None:
+                    self._localize_pending(job_id, game_id, mv.id, pending.result())
+                    pending = None
+            finally:
+                if pending is not None:  # stopping on an error: let the in-flight save land
+                    try:
+                        pending.result()
+                    except Exception:  # noqa: BLE001 - the original error is the one to report
+                        log.warning("background save failed while stopping", exc_info=True)
         cached.unlink(missing_ok=True)
         self._stage(job_id, "finishing", "Finishing up", None, force=True)
         with dbm.session() as db:  # the decoder is the truth if the container over-reported
@@ -289,10 +314,10 @@ class Worker:
         """Score every frame (one forward pass); generate defects + explanation only for frames
         at or above the issue-score cutoff (generate="flagged"), or for all (generate="all").
         Decoding runs one batch ahead in a background thread, overlapping the GPU."""
-        for chunk in prefetch(chunks(sample(path, interval_sec, start), self.s.batch_size)):
+        for chunk in prefetch(chunks(sample(path, interval_sec, start), self.batch)):
             ims = [im for _, _, im in chunk]
             t0 = time.perf_counter()
-            scores = self.backend.score(ims)
+            scores = self._oom_safe(self.backend.score, ims)
             score_ms = 1000 * (time.perf_counter() - t0) / len(ims)
             results = [FrameResult(score=s, latency_ms=score_ms) for s in scores]
             todo = [
@@ -302,7 +327,7 @@ class Worker:
             ]
             if todo:
                 t1 = time.perf_counter()
-                described = self.backend.describe([ims[i] for i in todo])
+                described = self._oom_safe(self.backend.describe, [ims[i] for i in todo])
                 gen_ms = 1000 * (time.perf_counter() - t1) / len(todo)
                 for i, r in zip(todo, described, strict=True):
                     r.score, r.latency_ms = scores[i], score_ms + gen_ms
@@ -311,14 +336,18 @@ class Worker:
 
     def _save_batch(
         self,
+        batch: list[tuple[int, int, Image.Image, FrameResult]],
         job_id: str,
         game_id: str,
-        batch: list[tuple[int, int, Image.Image, FrameResult]],
         model_id: str,
         threshold: ThresholdVersion,
         localize_all: bool,
         total: int = 2,
-    ) -> None:
+    ) -> list[tuple[int, Image.Image | None]]:
+        """Write one batch (runs on the saver thread: database and S3 only, no GPU). Returns
+        the heat maps to make: (frame id, image if still in memory), for the GPU thread."""
+        todo: list[tuple[int, Image.Image | None]] = []
+        in_batch: dict[int, Image.Image] = {}
         owner = f"games/{game_id}/runs/{job_id}"
         writes: list = []
         with dbm.session() as db:
@@ -351,10 +380,10 @@ class Worker:
                 ]
                 db.add(f)
                 db.flush()
+                in_batch[f.id] = im
                 if flagged and localize_all:
-                    self._localize(db, f, im, model_id, owner)
+                    todo.append((f.id, im))
                 job.flagged_frames += int(flagged)
-                job.localize_ms_total += f.localize_ms or 0.0
                 if r.latency_ms is not None:
                     lat.append(r.latency_ms)
             n_before = job.done_frames
@@ -375,16 +404,50 @@ class Worker:
                 db, game, threshold, since_index=batch[0][0], min_frames=min_frames
             )
             if not localize_all:
-                # Every alert gets its heat map: localize the frame it points to (read back
-                # from the store; the worst frame may be from an earlier batch).
-                for a in new_alerts:
-                    f = db.get(Frame, a.frame_id)
-                    if f is None or current_overlays(db, [f.id]):
-                        continue
-                    with self.store.local_copy(f.image_key) as p, Image.open(p) as im:
-                        self._localize(db, f, im.convert("RGB"), model_id, owner)
-                    job.localize_ms_total += f.localize_ms or 0.0
-                db.commit()
+                # Every alert gets its heat map: the frame it points to (from memory when it is
+                # in this batch; else read back later; the worst frame may be older).
+                todo += [(a.frame_id, in_batch.get(a.frame_id)) for a in new_alerts if a.frame_id]
+        return todo
+
+    def _localize_pending(
+        self, job_id: str, game_id: str, model_id: str, todo: list[tuple[int, Image.Image | None]]
+    ) -> None:
+        """Heat maps for a saved batch, on the GPU thread (the model is not shared across
+        threads)."""
+        if not todo:
+            return
+        owner = f"games/{game_id}/runs/{job_id}"
+        with dbm.session() as db:
+            job = db.get(Job, job_id)
+            for frame_id, im in todo:
+                f = db.get(Frame, frame_id)
+                if f is None or current_overlays(db, [f.id]):
+                    continue
+                if im is None:
+                    with self.store.local_copy(f.image_key) as p, Image.open(p) as src:
+                        self._localize(db, f, src.convert("RGB"), model_id, owner)
+                else:
+                    self._localize(db, f, im, model_id, owner)
+                job.localize_ms_total += f.localize_ms or 0.0
+            db.commit()
+
+    def _oom_safe(self, fn, ims: list):  # noqa: ANN001, ANN202
+        """Run fn(ims); on CUDA out-of-memory, halve the batch (for good) and retry in halves."""
+        try:
+            return fn(ims)
+        except Exception as e:  # torch.cuda.OutOfMemoryError, without importing torch here
+            if "out of memory" not in str(e).lower() or len(ims) <= 1:
+                raise
+            import torch
+
+            torch.cuda.empty_cache()
+            self.batch = max(1, len(ims) // 2)
+            cfg = getattr(self.backend, "cfg", None)
+            if cfg is not None:
+                cfg.model.batch_size = self.batch
+            log.warning("GPU out of memory at batch %d; continuing at %d", len(ims), self.batch)
+            mid = len(ims) // 2
+            return self._oom_safe(fn, ims[:mid]) + self._oom_safe(fn, ims[mid:])
 
     def _localize(self, db, frame: Frame, im: Image.Image, model_id: str, owner: str) -> None:
         """Heat map for one flagged frame, recorded as a Localization row whatever happens."""
@@ -485,7 +548,7 @@ class Worker:
     def _resume_file(self, job_id: str, key: str) -> Path:
         return Path(self.s.data_dir) / "resume" / f"{job_id}{Path(key).suffix}"
 
-    def _yield_to_shorter(self, job_id: str, path: Path, cached: Path) -> bool:
+    def _yield_to_shorter(self, job_id: str, path: Path, cached: Path, flush=None) -> bool:  # noqa: ANN001
         """Between batches: pause this job if a much shorter one is waiting (SRPT preemption).
         Progress is already committed, so the job resumes from its next frame later."""
         now_ = time.monotonic()
@@ -497,7 +560,10 @@ class Worker:
             shorter = should_yield(db, job, self.id, self.s) if job else None
             if shorter is None:
                 return False
-            done_at = job.done_frames
+        if flush is not None:
+            flush()  # the batch in hand is saved first, so nothing is redone on resume
+        with dbm.session() as db:
+            done_at = db.get(Job, job_id).done_frames
         # Keep the video before announcing the pause, so whichever worker resumes this job
         # (often this one, right after the short job) finds it. An open decoder keeps reading
         # the moved file; if the pause then loses a race, the copy is removed when the job ends.

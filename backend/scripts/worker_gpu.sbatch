@@ -24,7 +24,7 @@ mkdir -p "$TMPDIR"
 export STREAMSENSE_API_BACKEND=${STREAMSENSE_API_BACKEND:-streamsense}
 export STREAMSENSE_API_RUN_DIR=${STREAMSENSE_API_RUN_DIR:-$HOME/scratch/streamsense/outputs/E-07c/20261115T171807_212a7d93}
 export STREAMSENSE_API_STREAMSENSE_REPO=${STREAMSENSE_API_STREAMSENSE_REPO:-$(cd .. && pwd)/ml}
-export STREAMSENSE_API_DATA_DIR=/tmp/$USER/streamsense/worker-data STREAMSENSE_API_BATCH_SIZE=${STREAMSENSE_API_BATCH_SIZE:-16}
+export STREAMSENSE_API_DATA_DIR=/tmp/$USER/streamsense/worker-data STREAMSENSE_API_BATCH_SIZE=${STREAMSENSE_API_BATCH_SIZE:-0}  # 0 = sized to the GPU
 mkdir -p "$STREAMSENSE_API_DATA_DIR"
 # Rolling mode (scripts/pace_workers.sh): queue this job's successor now, so a GPU worker is
 # always running or waiting in line. A job killed at its time limit loses only its lease; the

@@ -150,7 +150,6 @@ def up() -> None:
             "STREAMSENSE_API_BACKEND": "streamsense",
             "STREAMSENSE_API_RUN_DIR": "/opt/streamsense/run",
             "STREAMSENSE_API_STREAMSENSE_REPO": "/opt/streamsense/app/ml",
-            "STREAMSENSE_API_BATCH_SIZE": "16",
             "STREAMSENSE_API_DATA_DIR": "/opt/streamsense/data",
             "STREAMSENSE_API_IDLE_SHUTDOWN_SEC": "900",
             "HF_HOME": "/opt/streamsense/hf",

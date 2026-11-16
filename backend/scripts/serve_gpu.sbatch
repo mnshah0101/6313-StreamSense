@@ -2,7 +2,7 @@
 # API + embedded GPU worker with the real checkpoint, in one Slurm job (PACE dev/testing).
 # Writes "host:port" to $STREAMSENSE_API_DATA_DIR/endpoint so the UI dev server can proxy to it.
 #
-#   cd backend && sbatch -A coc -q coc-ice -p coc-gpu,ice-gpu,ice-bw-gpu --gres=gpu:1 \
+#   cd streamsense_api && sbatch -A coc -q coc-ice -p coc-gpu,ice-gpu,ice-bw-gpu --gres=gpu:1 \
 #     --constraint="gpu-l40s|A100-80GB|gpu-h100|gpu-h200|gpu-a40|gpu-rtxpro-blackwell" \
 #     --export=ALL,API_VENV=$HOME/scratch/streamsense/api-venv-gpu scripts/serve_gpu.sbatch
 #
@@ -26,7 +26,7 @@ export STREAMSENSE_API_BACKEND=${STREAMSENSE_API_BACKEND:-streamsense}
 export STREAMSENSE_API_RUN_DIR=${STREAMSENSE_API_RUN_DIR:-$HOME/scratch/streamsense/outputs/E-07c/20261115T171807_212a7d93}
 export STREAMSENSE_API_STREAMSENSE_REPO=${STREAMSENSE_API_STREAMSENSE_REPO:-$(cd .. && pwd)/ml}
 export STREAMSENSE_API_DATA_DIR=${STREAMSENSE_API_DATA_DIR:-$HOME/scratch/streamsense/api-data}
-export STREAMSENSE_API_EMBEDDED_WORKER=true STREAMSENSE_API_BATCH_SIZE=${STREAMSENSE_API_BATCH_SIZE:-16}
+export STREAMSENSE_API_EMBEDDED_WORKER=true STREAMSENSE_API_BATCH_SIZE=${STREAMSENSE_API_BATCH_SIZE:-0}  # 0 = sized to the GPU
 PORT=${PORT:-$("${API_VENV:?set API_VENV}/bin/python" -c "import socket;s=socket.socket();s.bind(('',0));print(s.getsockname()[1])")}
 mkdir -p "$STREAMSENSE_API_DATA_DIR"
 echo "$(hostname -f):$PORT" > "$STREAMSENSE_API_DATA_DIR/endpoint"

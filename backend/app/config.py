@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     run_dir: Path | None = None  # playonsports outputs/<exp>/<run> (has run_record.json, adapter/)
     streamsense_repo: Path | None = None  # playonsports checkout, put on sys.path
     device: str | None = None  # e.g. "cuda:0"; None = the run's own setting
-    batch_size: int = 8  # frames per inference call
+    batch_size: int = 0  # frames per inference call; 0 = pick from GPU memory (auto_batch_size)
     binary_threshold: float = 0.5  # P(issue) at or above which a frame is flagged
     # Generated JSON on val: median 64 tokens on flagged frames, max 96. Generation stops at the
     # end of the JSON, so this only bounds a runaway output (training config uses 256).
