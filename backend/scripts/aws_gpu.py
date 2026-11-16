@@ -14,6 +14,7 @@ again when a job is queued and no worker (PACE or cloud) is online.
 import json
 import sys
 import time
+from pathlib import Path
 
 from aws_api import NAME as API_NAME
 from aws_api import REGION, REPO, elastic_ip, env_file, key_pair, session, ssh_cmd, tag
@@ -169,6 +170,10 @@ def up() -> None:
         )["Instances"][0]  # fmt: skip
         print("launched", inst["InstanceId"])
     register_with_api(inst["InstanceId"])
+    # The cloud GPU now covers the online demo: let PACE's rolling workers wind down.
+    stop = Path.home() / ".streamsense" / "stop-pace-workers"
+    stop.parent.mkdir(mode=0o700, exist_ok=True)
+    stop.touch()
     print(
         json.dumps(
             {"instance": inst["InstanceId"], "api": elastic_ip(ec2)["PublicIp"], "registered": True}

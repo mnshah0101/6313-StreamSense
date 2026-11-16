@@ -26,5 +26,13 @@ export STREAMSENSE_API_RUN_DIR=${STREAMSENSE_API_RUN_DIR:-$HOME/scratch/streamse
 export STREAMSENSE_API_STREAMSENSE_REPO=${STREAMSENSE_API_STREAMSENSE_REPO:-$(cd .. && pwd)/ml}
 export STREAMSENSE_API_DATA_DIR=/tmp/$USER/streamsense/worker-data STREAMSENSE_API_BATCH_SIZE=${STREAMSENSE_API_BATCH_SIZE:-16}
 mkdir -p "$STREAMSENSE_API_DATA_DIR"
+# Rolling mode (scripts/pace_workers.sh): queue this job's successor now, so a GPU worker is
+# always running or waiting in line. A job killed at its time limit loses only its lease; the
+# successor resumes that video from its last saved batch. Stop with `pace_workers.sh stop`.
+if [ -n "${SS_ROLL_ARGS:-}" ] && [ ! -e "$HOME/.streamsense/stop-pace-workers" ]; then
+  # shellcheck disable=SC2086
+  sbatch $SS_ROLL_ARGS --dependency=afterany:$SLURM_JOB_ID "$SLURM_SUBMIT_DIR/scripts/worker_gpu.sbatch" \
+    || echo "could not queue the successor job"
+fi
 nvidia-smi -L || true
 exec "${API_VENV:?set API_VENV}/bin/python" -m app.worker
