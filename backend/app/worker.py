@@ -231,6 +231,7 @@ class Worker:
                     log.info("job %s cancelled or lease lost; stopping", job_id)
                     return
                 self._save_batch(job_id, game_id, batch, mv.id, threshold, localize_all, total)
+                self._beat("busy", job_id)  # throttled to every 10 s; keeps Status "online"
         self._stage(job_id, "finishing", "Finishing up", None, force=True)
         with dbm.session() as db:  # the decoder is the truth if the container over-reported
             job = db.get(Job, job_id)

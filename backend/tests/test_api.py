@@ -687,3 +687,24 @@ def test_alerts_need_consecutive_flagged_frames(client):
         assert [x.id for x in db.scalars(select(Alert).where(Alert.game_id == gid))] == [
             f"alr-{gid}-4"
         ]
+
+
+def test_busy_worker_stays_online_during_a_long_job(client, worker, tmp_path):
+    """A worker that last beat long ago is still online while its running job makes progress."""
+    from app.models import WorkerState
+
+    analyze(client, mp4(tmp_path / "a.mp4", seconds=10))
+    jid = worker.claim()
+    worker._beat("busy", jid, force=True)
+    old = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=10)
+    with dbm.session() as db:
+        db.get(WorkerState, worker.id).last_seen_at = old
+        job = db.get(Job, jid)
+        job.heartbeat_at = old
+        db.commit()
+    assert client.get("/status").json()["live"]["gpus"] == []  # silent: offline
+    with dbm.session() as db:
+        db.get(Job, jid).heartbeat_at = datetime.now(UTC).replace(tzinfo=None)
+        db.commit()
+    (g,) = client.get("/status").json()["live"]["gpus"]
+    assert g["state"] == "busy" and g["jobId"] == jid

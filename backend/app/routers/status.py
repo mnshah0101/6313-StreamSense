@@ -172,9 +172,16 @@ def status(window: Literal["24h", "7d", "30d"] = Query("24h", alias="range"), db
     gpus = []
     for w in db.scalars(select(WorkerState).order_by(WorkerState.id)):
         seen = _aware(w.last_seen_at)
+        job = db.get(Job, w.current_job_id) if w.current_job_id and w.state == "busy" else None
+        if (
+            job is not None
+            and job.status == "running"
+            and job.worker_id == w.id
+            and job.heartbeat_at
+        ):
+            seen = max(seen, _aware(job.heartbeat_at))  # a long job's progress is a heartbeat too
         if w.state == "stopped" or (now - seen).total_seconds() > ONLINE_SEC:
             continue
-        job = db.get(Job, w.current_job_id) if w.current_job_id and w.state == "busy" else None
         gpus.append(GpuLive(
             id=w.id, hardware=w.hardware, model_id=w.model_id, state=w.state,
             job_id=job.id if job else None, job_label=job.label if job else None,
