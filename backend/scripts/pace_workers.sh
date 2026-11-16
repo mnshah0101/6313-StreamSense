@@ -2,6 +2,7 @@
 # Keep GPU workers running on PACE around the clock (until the cloud GPU takes over).
 #
 #   bash scripts/pace_workers.sh start [N] [--after JOBID ...]   # N rolling chains (default 1)
+#   SS_PARTITIONS=ice-gpu SS_GPUS='gpu-h200|gpu-h100' bash scripts/pace_workers.sh start 2   # fast GPUs
 #   bash scripts/pace_workers.sh status
 #   bash scripts/pace_workers.sh stop                             # chains end after the current jobs
 #   bash scripts/pace_workers.sh stop --now                       # ...and cancel them now
@@ -12,8 +13,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 STOP=$HOME/.streamsense/stop-pace-workers
-ARGS="-A coc -q coc-ice -p coc-gpu,ice-gpu,ice-bw-gpu --gres=gpu:1"
-ARGS+=" --constraint=gpu-h200|gpu-h100|gpu-rtxpro-blackwell|A100-80GB|gpu-l40s"
+ARGS="-A coc -q coc-ice -p ${SS_PARTITIONS:-coc-gpu,ice-gpu,ice-bw-gpu} --gres=gpu:1"  # H100/H200 live in ice-gpu only
+# GPU types, fastest first is NOT a preference to Slurm (any match is taken): narrow the list
+# to get fast GPUs, e.g. SS_GPUS="gpu-h200|gpu-h100" (full cards; PACE's Blackwells are MIG
+# slices, about as fast as an L40S). Successors keep the same list.
+ARGS+=" --constraint=${SS_GPUS:-gpu-h200|gpu-h100|gpu-rtxpro-blackwell|A100-80GB|gpu-l40s}"
 ARGS+=" --output=$HOME/scratch/streamsense/logs/%x_%j.out"
 VENV=${API_VENV:-$HOME/scratch/streamsense/api-venv-gpu}
 
