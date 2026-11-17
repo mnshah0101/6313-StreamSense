@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Keep GPU workers running on PACE around the clock (until the cloud GPU takes over).
 #
-#   bash scripts/pace_workers.sh start [N] [--after JOBID ...]   # N rolling chains (default 1)
+#   bash scripts/pace_workers.sh start [N] [--after JOBID ...]   # N rolling chains (default 1; max SS_MAX_WORKERS=1)
 #   SS_PARTITIONS=ice-gpu SS_GPUS='gpu-h200|gpu-h100' bash scripts/pace_workers.sh start 2   # fast GPUs
 #   bash scripts/pace_workers.sh status
 #   bash scripts/pace_workers.sh stop                             # chains end after the current jobs
@@ -23,14 +23,25 @@ VENV=${API_VENV:-$HOME/scratch/streamsense/api-venv-gpu}
 
 case "${1:-status}" in
   start)
-    shift; n=1; after=()
+    shift; n=1; after=(); force=0
     [[ "${1:-}" =~ ^[0-9]+$ ]] && { n=$1; shift; }
-    while [ $# -gt 0 ]; do [ "$1" = --after ] && after+=("$2") && shift; shift; done
+    while [ $# -gt 0 ]; do
+      case "$1" in --after) after+=("$2"); shift ;; --force) force=1 ;; esac; shift
+    done
+    # Chains = running workers + fresh starts still waiting (a waiting successor belongs to its
+    # running predecessor). Never exceed SS_MAX_WORKERS (default 1) unless --force.
+    max=${SS_MAX_WORKERS:-1}
+    chains=$(squeue -u "$USER" -n ss-worker -h -o "%T %E" | awk '$1=="RUNNING" || ($1=="PENDING" && $2=="(null)")' | wc -l)
+    if [ ${#after[@]} -eq 0 ] && [ $((chains + n)) -gt "$max" ] && [ $force -eq 0 ]; then
+      echo "already $chains worker chain(s); max is $max (SS_MAX_WORKERS). Nothing started."
+      echo "Replace a chain with --after JOBID, stop with 'stop --now', or override with --force."
+      exit 1
+    fi
     rm -f "$STOP"
     for i in $(seq "$n"); do
       dep=""; [ -n "${after[$((i-1))]:-}" ] && dep="--dependency=afterany:${after[$((i-1))]}"
       # shellcheck disable=SC2086
-      SS_ROLL_ARGS=$ARGS API_VENV=$VENV sbatch $ARGS $dep scripts/worker_gpu.sbatch  # env: --export=ALL
+      SS_MAX_WORKERS=$max SS_ROLL_ARGS=$ARGS API_VENV=$VENV sbatch $ARGS $dep scripts/worker_gpu.sbatch  # env: --export=ALL
     done ;;
   stop)
     mkdir -p "$(dirname "$STOP")"; touch "$STOP"

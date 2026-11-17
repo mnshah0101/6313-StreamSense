@@ -29,6 +29,13 @@ mkdir -p "$STREAMSENSE_API_DATA_DIR"
 # Rolling mode (scripts/pace_workers.sh): queue this job's successor now, so a GPU worker is
 # always running or waiting in line. A job killed at its time limit loses only its lease; the
 # successor resumes that video from its last saved batch. Stop with `pace_workers.sh stop`.
+# At most SS_MAX_WORKERS (default 1) GPU workers: if that many are already running, end this
+# chain here (no worker, no successor). Successors start only after their predecessor ends.
+others=$(squeue -u "$USER" -n ss-worker -t RUNNING -h -o %i | grep -vxc "$SLURM_JOB_ID" || true)
+if [ "$others" -ge "${SS_MAX_WORKERS:-1}" ]; then
+  echo "already $others GPU worker(s) running (max ${SS_MAX_WORKERS:-1}): this chain ends"
+  exit 0
+fi
 if [ -n "${SS_ROLL_ARGS:-}" ] && [ ! -e "$HOME/.streamsense/stop-pace-workers" ]; then
   # shellcheck disable=SC2086
   sbatch $SS_ROLL_ARGS --dependency=afterany:$SLURM_JOB_ID "$SLURM_SUBMIT_DIR/scripts/worker_gpu.sbatch" \
