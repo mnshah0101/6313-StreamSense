@@ -6,6 +6,8 @@
 #   bash scripts/pace_workers.sh status
 #   bash scripts/pace_workers.sh stop                             # chains end after the current jobs
 #   bash scripts/pace_workers.sh stop --now                       # ...and cancel them now
+#   bash scripts/pace_workers.sh install   # watchdog (scrontab, every 15 min): runs `ensure`
+#   bash scripts/pace_workers.sh ensure    # start a worker if none is running or waiting
 #
 # Each chain is one worker-only Slurm job (scripts/worker_gpu.sbatch) that queues its own
 # successor when it starts, so the next GPU is already waiting in line when the 8 h limit hits.
@@ -43,6 +45,39 @@ case "${1:-status}" in
       # shellcheck disable=SC2086
       SS_MAX_WORKERS=$max SS_ROLL_ARGS=$ARGS API_VENV=$VENV sbatch $ARGS $dep scripts/worker_gpu.sbatch  # env: --export=ALL
     done ;;
+  ensure)
+    # Watchdog, run by scrontab every 15 min (see `install`): keep one worker going with no
+    # session open. Quiet when healthy. Fast GPUs first; any GPU after SS_FALLBACK_MIN minutes.
+    log() { echo "$(date '+%F %T') $*"; }
+    [ -e "$STOP" ] && exit 0
+    [ "$(squeue -u "$USER" -n ss-worker -t RUNNING -h -o %i | wc -l)" -ge 1 ] && exit 0
+    for j in $(squeue -u "$USER" -n ss-worker -t PENDING -h -o "%i %r" | awk '$2 ~ /DependencyNeverSatisfied/ {print $1}'); do
+      scancel "$j"; log "cancelled $j (its predecessor failed)"
+    done
+    fast_p=ice-gpu fast_g='gpu-h200|gpu-h100'
+    id=$(squeue -u "$USER" -n ss-worker -t PENDING -h -o %i | head -1)
+    if [ -n "$id" ]; then  # a worker is waiting for a GPU: give the fast ones time, then any
+      info=$(scontrol show job "$id")
+      feat=$(grep -o 'Features=[^ ]*' <<<"$info" | cut -d= -f2)
+      since=$(grep -o 'EligibleTime=[^ ]*' <<<"$info" | cut -d= -f2)
+      [ "$since" = Unknown ] && exit 0  # still waiting on its predecessor
+      age=$(( ($(date +%s) - $(date -d "$since" +%s)) / 60 ))
+      if [ "$feat" = "$fast_g" ] && [ "$age" -ge "${SS_FALLBACK_MIN:-20}" ]; then
+        scancel "$id"; log "no H100/H200 free after $age min: starting on any GPU"
+        SS_PARTITIONS='' SS_GPUS='' exec bash "$0" start
+      fi
+      exit 0
+    fi
+    log "no GPU worker: starting one on an H100/H200"
+    SS_PARTITIONS=$fast_p SS_GPUS=$fast_g exec bash "$0" start ;;
+  install)
+    # Slurm's own cron (scrontab) runs `ensure` every 15 min on a CPU node, logged in or not.
+    mkdir -p "$HOME/scratch/streamsense/logs"
+    entry="*/15 * * * * bash $(pwd)/scripts/pace_workers.sh ensure >> $HOME/scratch/streamsense/logs/keepalive.log 2>&1"
+    { scrontab -l 2>/dev/null | grep -v 'pace_workers.sh ensure' | grep -v '^#SCRON.*ss-keepalive' || true
+      echo "#SCRON -A coc -q coc-ice -p coc-cpu -t 00:05:00 -c 1 --mem=1G -J ss-keepalive"
+      echo "$entry"; } | scrontab -
+    scrontab -l | tail -2 ;;
   stop)
     mkdir -p "$(dirname "$STOP")"; touch "$STOP"
     echo "rolling stopped: running workers finish their jobs, no successors are queued"
