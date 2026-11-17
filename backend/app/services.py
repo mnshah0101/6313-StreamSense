@@ -86,6 +86,25 @@ def current_overlays(db: Session, frame_ids: list[int]) -> dict[int, Localizatio
     return out
 
 
+def flagged_frames(db: Session, game_id: str) -> list[Frame]:
+    """Only what stretches() reads, only for flagged frames: a game list must not pull every
+    frame row of every game from the database (that was most of our database traffic)."""
+    from sqlalchemy.orm import load_only
+
+    return list(
+        db.scalars(
+            select(Frame)
+            .options(
+                load_only(
+                    Frame.id, Frame.index, Frame.quality_issue, Frame.defects, Frame.issue_score
+                )
+            )
+            .where(Frame.game_id == game_id, Frame.quality_issue.is_(True))
+            .order_by(Frame.index)
+        )
+    )
+
+
 def game_frames(db: Session, game_id: str) -> list[Frame]:
     return list(db.scalars(select(Frame).where(Frame.game_id == game_id).order_by(Frame.index)))
 

@@ -19,7 +19,7 @@ ARGS="-A coc -q coc-ice -p ${SS_PARTITIONS:-coc-gpu,ice-gpu,ice-bw-gpu} --gres=g
 # GPU types, fastest first is NOT a preference to Slurm (any match is taken): narrow the list
 # to get fast GPUs, e.g. SS_GPUS="gpu-h200|gpu-h100" (full cards; PACE's Blackwells are MIG
 # slices, about as fast as an L40S). Successors keep the same list.
-ARGS+=" --constraint=${SS_GPUS:-gpu-h200|gpu-h100|gpu-rtxpro-blackwell|A100-80GB|gpu-l40s}"
+ARGS+=" --constraint=${SS_GPUS:-gpu-h200|gpu-h100|gpu-a100|gpu-l40s|gpu-a40|gpu-rtxpro-blackwell}"  # every type with >=40 GB and bf16 (not V100, RTX 6000, MI210)
 ARGS+=" --output=$HOME/scratch/streamsense/logs/%x_%j.out"
 VENV=${API_VENV:-$HOME/scratch/streamsense/api-venv-gpu}
 

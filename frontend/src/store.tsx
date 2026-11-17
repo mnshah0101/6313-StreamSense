@@ -52,7 +52,7 @@ interface Store {
 
 const Ctx = createContext<Store | null>(null)
 
-const ALERT_POLL_MS = 5000
+const ALERT_POLL_MS = 15000  // every request reaches the database: keep it calm
 const CATALOG_POLL_MS = 15000
 const JOB_POLL_MS = 1500
 

@@ -148,7 +148,8 @@ class Frame(Base):
     # [{"type", "severity", "severity_source": "model"|"unavailable", "location_text"}]
     defects: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     explanation: Mapped[str | None] = mapped_column(default=None)
-    raw_output: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
+    # Deferred: large and never shown in lists; loaded only when accessed.
+    raw_output: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None, deferred=True)
     latency_ms: Mapped[float | None] = mapped_column(default=None)
     localize_ms: Mapped[float | None] = mapped_column(default=None)
     parse_failed: Mapped[bool] = mapped_column(default=False)

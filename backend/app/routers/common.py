@@ -9,7 +9,7 @@ from app.config import Settings
 from app.media import MediaStore
 from app.models import Alert, Frame, Game, Job, Localization
 from app.schemas import AlertOut, FrameOut, GameOut, HeatmapInfo, JobOut, Stretch
-from app.services import current_overlays, game_frames, stretches
+from app.services import current_overlays, flagged_frames, stretches
 
 
 def error(status: int, code: str, message: str) -> HTTPException:
@@ -39,8 +39,9 @@ def total_frames(game: Game, s: Settings) -> int:
 
 
 def game_out(db: Session, game: Game, s: Settings) -> GameOut:
-    frames = game_frames(db, game.id)
-    overlays = current_overlays(db, [f.id for f in frames if f.quality_issue])
+    frames = flagged_frames(db, game.id)  # stretches only need flagged frames
+    overlays = current_overlays(db, [f.id for f in frames])
+    analyzed = db.scalar(select(func.count()).select_from(Frame).where(Frame.game_id == game.id))
     open_alerts = db.scalar(
         select(func.count())
         .select_from(Alert)
@@ -61,8 +62,8 @@ def game_out(db: Session, game: Game, s: Settings) -> GameOut:
         has_video=bool(game.video_key),
         media_kind=_media_kind(game.video_key),
         total_frames=total_frames(game, s),
-        analyzed_frames=len(frames),
-        flagged_frames=sum(f.quality_issue for f in frames),
+        analyzed_frames=analyzed or 0,
+        flagged_frames=len(frames),
         open_alerts=open_alerts or 0,
         poster_url=f"/media/games/{game.id}/poster" if game.poster_key else None,
         stretches=[
